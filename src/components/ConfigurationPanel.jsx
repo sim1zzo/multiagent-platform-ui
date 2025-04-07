@@ -2,43 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export const ConfigurationPanel = ({ node, onUpdate, onClose }) => {
-  if (!node) return null;
-
-  return (
-    <div className='w-80 h-full border-l border-gray-200 bg-white overflow-y-auto'>
-      <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-        <h2 className='text-lg font-medium'>Node Configuration</h2>
-        <button className='text-gray-500 hover:text-gray-700' onClick={onClose}>
-          <X className='w-5 h-5' />
-        </button>
-      </div>
-
-      <NodeConfigForm node={node} onUpdate={onUpdate} />
-    </div>
-  );
-};
-
-// Shared component for different node type configurations
-const NodeConfigForm = ({ node, onUpdate }) => {
-  if (!node) return null;
-
-  switch (node.type) {
-    case 'trigger':
-      return <TriggerNodeForm node={node} onUpdate={onUpdate} />;
-    case 'agent':
-      return <AgentNodeForm node={node} onUpdate={onUpdate} />;
-    case 'condition':
-      return <ConditionNodeForm node={node} onUpdate={onUpdate} />;
-    case 'action':
-      return <ActionNodeForm node={node} onUpdate={onUpdate} />;
-    case 'tool':
-      return <ToolNodeForm node={node} onUpdate={onUpdate} />;
-    default:
-      return <div>Unknown node type: {node.type}</div>;
-  }
-};
-
 // Trigger Node Configuration
 const TriggerNodeForm = ({ node, onUpdate }) => {
   const [formState, setFormState] = useState({
@@ -151,8 +114,7 @@ const TriggerNodeForm = ({ node, onUpdate }) => {
 const AgentNodeForm = ({ node, onUpdate }) => {
   const [formState, setFormState] = useState({
     name: '',
-    model: 'gpt-4',
-    memory: 'chat-history',
+    instructions: '',
   });
 
   // Initialize form with node data
@@ -160,8 +122,7 @@ const AgentNodeForm = ({ node, onUpdate }) => {
     if (node) {
       setFormState({
         name: node.name || '',
-        model: node.model || 'gpt-4',
-        memory: node.memory || 'chat-history',
+        instructions: node.instructions || '',
       });
     }
   }, [node]);
@@ -207,55 +168,51 @@ const AgentNodeForm = ({ node, onUpdate }) => {
 
         <div className='mb-4'>
           <label
-            htmlFor='model'
+            htmlFor='instructions'
             className='block text-sm font-medium text-gray-700 mb-1'
           >
-            AI Model
+            Agent Instructions
           </label>
-          <select
-            id='model'
-            name='model'
-            value={formState.model}
+          <textarea
+            id='instructions'
+            name='instructions'
+            value={formState.instructions}
             onChange={handleChange}
+            rows={4}
             className='w-full p-2 border border-gray-300 rounded-md'
-          >
-            <option value='gpt-4'>GPT-4</option>
-            <option value='gpt-3.5'>GPT-3.5</option>
-            <option value='claude-3'>Claude 3</option>
-            <option value='llama-3'>Llama 3</option>
-          </select>
-        </div>
-
-        <div className='mb-4'>
-          <label
-            htmlFor='memory'
-            className='block text-sm font-medium text-gray-700 mb-1'
-          >
-            Memory Type
-          </label>
-          <select
-            id='memory'
-            name='memory'
-            value={formState.memory}
-            onChange={handleChange}
-            className='w-full p-2 border border-gray-300 rounded-md'
-          >
-            <option value='chat-history'>Chat History</option>
-            <option value='vector-store'>Vector Store</option>
-            <option value='stateless'>Stateless</option>
-          </select>
+            placeholder='Instructions for the AI agent...'
+          />
         </div>
 
         <div className='mb-4'>
           <h4 className='text-sm font-medium text-gray-700 mb-2'>
-            Connected Tools
+            Connected Components
           </h4>
-          <div className='border border-gray-300 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto'>
-            {/* This section would list connected tools, but we don't have access
-                to the edges/nodes here. You could pass this info as props or use context. */}
-            <div className='text-gray-500 text-sm italic'>
-              Tool nodes are managed separately. You can connect tool nodes to
-              this agent by dragging connections in the workflow editor.
+          <div className='text-xs text-gray-500 mb-2'>
+            The Agent uses Model, Memory, and Tool nodes that are connected to
+            it.
+          </div>
+          <div className='flex flex-col space-y-2'>
+            <div className='bg-blue-50 p-2 rounded'>
+              <div className='font-medium text-blue-700'>Model</div>
+              <div className='text-xs text-blue-600'>
+                Model is connected separately. Add a Model node and connect it
+                to this Agent.
+              </div>
+            </div>
+            <div className='bg-teal-50 p-2 rounded'>
+              <div className='font-medium text-teal-700'>Memory</div>
+              <div className='text-xs text-teal-600'>
+                Memory is connected separately. Add a Memory node and connect it
+                to this Agent.
+              </div>
+            </div>
+            <div className='bg-yellow-50 p-2 rounded'>
+              <div className='font-medium text-yellow-700'>Tools</div>
+              <div className='text-xs text-yellow-600'>
+                Tools are connected separately. Add Tool nodes and connect them
+                to this Agent.
+              </div>
             </div>
           </div>
         </div>
@@ -625,5 +582,277 @@ const ToolNodeForm = ({ node, onUpdate }) => {
         </button>
       </div>
     </form>
+  );
+};
+
+// Model Node Configuration
+const ModelNodeForm = ({ node, onUpdate }) => {
+  const [formState, setFormState] = useState({
+    name: '',
+    modelType: 'gpt-4',
+    config: '',
+  });
+
+  // Initialize form with node data
+  useEffect(() => {
+    if (node) {
+      setFormState({
+        name: node.name || '',
+        modelType: node.modelType || 'gpt-4',
+        config: node.config || '',
+      });
+    }
+  }, [node]);
+
+  // Handle form field changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormState({
+      ...formState,
+      [name]: value,
+    });
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate(formState);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className='p-4'>
+      <div className='mb-6'>
+        <h3 className='text-sm font-medium text-gray-700 mb-3'>
+          Model Configuration
+        </h3>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='name'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Name
+          </label>
+          <input
+            type='text'
+            id='name'
+            name='name'
+            value={formState.name}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='modelType'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Model Type
+          </label>
+          <select
+            id='modelType'
+            name='modelType'
+            value={formState.modelType}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          >
+            <option value='gpt-4'>GPT-4</option>
+            <option value='gpt-3.5'>GPT-3.5</option>
+            <option value='claude-3'>Claude 3</option>
+            <option value='llama-3'>Llama 3</option>
+          </select>
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='config'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Model Configuration
+          </label>
+          <textarea
+            id='config'
+            name='config'
+            value={formState.config}
+            onChange={handleChange}
+            rows={4}
+            className='w-full p-2 border border-gray-300 rounded-md'
+            placeholder='Model-specific configuration (temperature, max tokens, etc.)'
+          />
+        </div>
+
+        <div className='text-xs text-gray-500 italic mb-2'>
+          Note: This model must be connected to an AI Agent node to function
+          properly.
+        </div>
+      </div>
+
+      <div className='flex justify-end'>
+        <button
+          type='submit'
+          className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Memory Node Configuration
+const MemoryNodeForm = ({ node, onUpdate }) => {
+  const [formState, setFormState] = useState({
+    name: '',
+    memoryType: 'chat-history',
+    config: '',
+  });
+
+  // Initialize form with node data
+  useEffect(() => {
+    if (node) {
+      setFormState({
+        name: node.name || '',
+        memoryType: node.memoryType || 'chat-history',
+        config: node.config || '',
+      });
+    }
+  }, [node]);
+
+  // Handle form field changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormState({
+      ...formState,
+      [name]: value,
+    });
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate(formState);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className='p-4'>
+      <div className='mb-6'>
+        <h3 className='text-sm font-medium text-gray-700 mb-3'>
+          Memory Configuration
+        </h3>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='name'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Name
+          </label>
+          <input
+            type='text'
+            id='name'
+            name='name'
+            value={formState.name}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='memoryType'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Memory Type
+          </label>
+          <select
+            id='memoryType'
+            name='memoryType'
+            value={formState.memoryType}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          >
+            <option value='chat-history'>Chat History</option>
+            <option value='vector-store'>Vector Store</option>
+            <option value='postgres'>Postgres</option>
+            <option value='redis'>Redis</option>
+            <option value='stateless'>Stateless</option>
+          </select>
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='config'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Memory Configuration
+          </label>
+          <textarea
+            id='config'
+            name='config'
+            value={formState.config}
+            onChange={handleChange}
+            rows={4}
+            className='w-full p-2 border border-gray-300 rounded-md'
+            placeholder='Memory-specific configuration (connection details, window size, etc.)'
+          />
+        </div>
+
+        <div className='text-xs text-gray-500 italic mb-2'>
+          Note: This memory node must be connected to an AI Agent node to
+          function properly.
+        </div>
+      </div>
+
+      <div className='flex justify-end'>
+        <button
+          type='submit'
+          className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Shared component for different node type configurations
+const NodeConfigForm = ({ node, onUpdate }) => {
+  if (!node) return null;
+
+  switch (node.type) {
+    case 'trigger':
+      return <TriggerNodeForm node={node} onUpdate={onUpdate} />;
+    case 'agent':
+      return <AgentNodeForm node={node} onUpdate={onUpdate} />;
+    case 'condition':
+      return <ConditionNodeForm node={node} onUpdate={onUpdate} />;
+    case 'action':
+      return <ActionNodeForm node={node} onUpdate={onUpdate} />;
+    case 'tool':
+      return <ToolNodeForm node={node} onUpdate={onUpdate} />;
+    case 'model':
+      return <ModelNodeForm node={node} onUpdate={onUpdate} />;
+    case 'memory':
+      return <MemoryNodeForm node={node} onUpdate={onUpdate} />;
+    default:
+      return <div>Unknown node type: {node.type}</div>;
+  }
+};
+
+export const ConfigurationPanel = ({ node, onUpdate, onClose }) => {
+  if (!node) return null;
+
+  return (
+    <div className='w-80 h-full border-l border-gray-200 bg-white overflow-y-auto'>
+      <div className='flex items-center justify-between p-4 border-b border-gray-200'>
+        <h2 className='text-lg font-medium'>Node Configuration</h2>
+        <button className='text-gray-500 hover:text-gray-700' onClick={onClose}>
+          <X className='w-5 h-5' />
+        </button>
+      </div>
+
+      <NodeConfigForm node={node} onUpdate={onUpdate} />
+    </div>
   );
 };

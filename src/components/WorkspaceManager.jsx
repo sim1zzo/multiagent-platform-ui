@@ -15,6 +15,8 @@ import {
   ConditionNode,
   ActionNode,
   ToolNode,
+  ModelNode,
+  MemoryNode,
 } from './nodes/CustomNodes';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { NavigationPanel } from './NavigationPanel';
@@ -26,6 +28,8 @@ const nodeTypes = {
   condition: ConditionNode,
   action: ActionNode,
   tool: ToolNode,
+  model: ModelNode,
+  memory: MemoryNode,
 };
 
 // Register custom edge types
@@ -102,9 +106,39 @@ export const WorkspaceManager = ({
 
     if (!sourceNode || !targetNode) return false;
 
+    // Model nodes can only connect to agent nodes
+    if (sourceNode.type === 'model' && targetNode.type !== 'agent') {
+      return false;
+    }
+
+    // Memory nodes can only connect to agent nodes
+    if (sourceNode.type === 'memory' && targetNode.type !== 'agent') {
+      return false;
+    }
+
     // Tool nodes can only connect to agent nodes
     if (sourceNode.type === 'tool' && targetNode.type !== 'agent') {
       return false;
+    }
+
+    // Model nodes can only have one outbound connection
+    if (sourceNode.type === 'model') {
+      const existingConnections = reactflowEdges.filter(
+        (edge) => edge.source === sourceNodeId
+      );
+      if (existingConnections.length > 0) {
+        return false;
+      }
+    }
+
+    // Memory nodes can only have one outbound connection
+    if (sourceNode.type === 'memory') {
+      const existingConnections = reactflowEdges.filter(
+        (edge) => edge.source === sourceNodeId
+      );
+      if (existingConnections.length > 0) {
+        return false;
+      }
     }
 
     // Tool nodes can only have one outbound connection
@@ -116,8 +150,6 @@ export const WorkspaceManager = ({
         return false;
       }
     }
-
-    // Add more validation rules as needed
 
     return true;
   };
@@ -185,6 +217,10 @@ export const WorkspaceManager = ({
                 return '#22c55e'; // green-500
               case 'tool':
                 return '#eab308'; // yellow-500
+              case 'model':
+                return '#0ea5e9'; // sky-500
+              case 'memory':
+                return '#14b8a6'; // teal-500
               default:
                 return '#94a3b8'; // slate-400
             }

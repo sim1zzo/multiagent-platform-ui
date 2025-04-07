@@ -94,6 +94,9 @@ const AgentNodeConfig = ({ data, onChange }) => {
           <option value='claude-3'>Claude 3</option>
           <option value='llama-3'>Llama 3</option>
         </select>
+        <div className='mt-1 text-xs text-gray-500 italic'>
+          This will create a separate Model node connected to the Agent.
+        </div>
       </div>
 
       <div>
@@ -111,13 +114,18 @@ const AgentNodeConfig = ({ data, onChange }) => {
         >
           <option value='chat-history'>Chat History</option>
           <option value='vector-store'>Vector Store</option>
+          <option value='postgres'>Postgres</option>
+          <option value='redis'>Redis</option>
           <option value='stateless'>Stateless</option>
         </select>
+        <div className='mt-1 text-xs text-gray-500 italic'>
+          This will create a separate Memory node connected to the Agent.
+        </div>
       </div>
 
       <div>
         <label className='block text-sm font-medium text-gray-700 mb-1'>
-          Tools (will be created as separate nodes)
+          Tools
         </label>
         <div className='space-y-2 border border-gray-300 rounded-md p-2'>
           {availableTools.map((tool) => (
@@ -138,9 +146,8 @@ const AgentNodeConfig = ({ data, onChange }) => {
             </div>
           ))}
         </div>
-        <div className='mt-2 text-xs text-gray-500 italic'>
-          Note: Tool nodes will be automatically created and connected to this
-          agent.
+        <div className='mt-1 text-xs text-gray-500 italic'>
+          Each selected tool will be created as a separate node connected to the Agent.
         </div>
       </div>
     </div>
@@ -302,6 +309,105 @@ const ToolNodeConfig = ({ data, onChange }) => {
   );
 };
 
+const ModelNodeConfig = ({ data, onChange }) => {
+  const [modelType, setModelType] = useState(data.modelType || 'gpt-4');
+
+  useEffect(() => {
+    onChange({ ...data, modelType });
+  }, [modelType]);
+
+  return (
+    <div className='space-y-4'>
+      <div>
+        <label
+          htmlFor='modelType'
+          className='block text-sm font-medium text-gray-700 mb-1'
+        >
+          Model Type
+        </label>
+        <select
+          id='modelType'
+          value={modelType}
+          onChange={(e) => setModelType(e.target.value)}
+          className='w-full p-2 border border-gray-300 rounded-md'
+        >
+          <option value='gpt-4'>GPT-4</option>
+          <option value='gpt-3.5'>GPT-3.5</option>
+          <option value='claude-3'>Claude 3</option>
+          <option value='llama-3'>Llama 3</option>
+        </select>
+      </div>
+
+      <div>
+        <label
+          htmlFor='config'
+          className='block text-sm font-medium text-gray-700 mb-1'
+        >
+          Configuration
+        </label>
+        <textarea
+          id='config'
+          value={data.config || ''}
+          onChange={(e) => onChange({ ...data, config: e.target.value })}
+          className='w-full p-2 border border-gray-300 rounded-md'
+          rows={4}
+          placeholder='Add configuration details...'
+        />
+      </div>
+    </div>
+  );
+};
+
+const MemoryNodeConfig = ({ data, onChange }) => {
+  const [memoryType, setMemoryType] = useState(data.memoryType || 'chat-history');
+
+  useEffect(() => {
+    onChange({ ...data, memoryType });
+  }, [memoryType]);
+
+  return (
+    <div className='space-y-4'>
+      <div>
+        <label
+          htmlFor='memoryType'
+          className='block text-sm font-medium text-gray-700 mb-1'
+        >
+          Memory Type
+        </label>
+        <select
+          id='memoryType'
+          value={memoryType}
+          onChange={(e) => setMemoryType(e.target.value)}
+          className='w-full p-2 border border-gray-300 rounded-md'
+        >
+          <option value='chat-history'>Chat History</option>
+          <option value='vector-store'>Vector Store</option>
+          <option value='postgres'>Postgres</option>
+          <option value='redis'>Redis</option>
+          <option value='stateless'>Stateless</option>
+        </select>
+      </div>
+
+      <div>
+        <label
+          htmlFor='config'
+          className='block text-sm font-medium text-gray-700 mb-1'
+        >
+          Configuration
+        </label>
+        <textarea
+          id='config'
+          value={data.config || ''}
+          onChange={(e) => onChange({ ...data, config: e.target.value })}
+          className='w-full p-2 border border-gray-300 rounded-md'
+          rows={4}
+          placeholder='Add configuration details...'
+        />
+      </div>
+    </div>
+  );
+};
+
 export const NodeCreationModal = ({
   isOpen,
   nodeType,
@@ -335,6 +441,10 @@ export const NodeCreationModal = ({
         return <ActionNodeConfig data={nodeData} onChange={setNodeData} />;
       case 'tool':
         return <ToolNodeConfig data={nodeData} onChange={setNodeData} />;
+      case 'model':
+        return <ModelNodeConfig data={nodeData} onChange={setNodeData} />;
+      case 'memory':
+        return <MemoryNodeConfig data={nodeData} onChange={setNodeData} />;
       default:
         return <div>Unknown node type</div>;
     }

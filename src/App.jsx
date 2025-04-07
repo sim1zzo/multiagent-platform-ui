@@ -102,61 +102,102 @@ const App = () => {
       ...nodeData,
     };
 
-    const newNodes = [...nodes, newNode];
+    let newNodes = [...nodes, newNode];
     let newEdges = [...edges];
 
-    // If this is an agent node with tools, create tool nodes
-    if (newNode.type === 'agent' && newNode.tools && newNode.tools.length > 0) {
-      const toolNodes = [];
-      const toolEdges = [];
+    // If this is an agent node, create model, memory, and tool nodes
+    if (newNode.type === 'agent') {
+      // Create model node
+      const modelNode = {
+        id: `model-${Date.now()}`,
+        type: 'model',
+        name: `${newNode.model || 'gpt-4'} Model`,
+        modelType: newNode.model || 'gpt-4',
+        position: {
+          x: newNode.position.x - 200,
+          y: newNode.position.y + 150,
+        },
+      };
 
-      // Position calculation for tools layout
-      const toolsPerRow = 3;
-      const horizontalSpacing = 170;
-      const verticalSpacing = 120;
-      const startX =
-        newNode.position.x -
-        ((Math.min(newNode.tools.length, toolsPerRow) - 1) *
-          horizontalSpacing) /
-          2;
-      const startY = newNode.position.y + 200; // Place tools below the agent
+      // Create model to agent edge
+      const modelEdge = {
+        id: `edge-${modelNode.id}-to-${newNode.id}`,
+        source: modelNode.id,
+        target: newNode.id,
+        sourceHandle: 'output',
+        targetHandle: 'model',
+      };
 
-      // Create tool nodes for each selected tool
-      newNode.tools.forEach((toolId, index) => {
-        const row = Math.floor(index / toolsPerRow);
-        const col = index % toolsPerRow;
+      // Create memory node
+      const memoryNode = {
+        id: `memory-${Date.now()}`,
+        type: 'memory',
+        name: `${(newNode.memory || 'chat-history')
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase())} Memory`,
+        memoryType: newNode.memory || 'chat-history',
+        position: {
+          x: newNode.position.x,
+          y: newNode.position.y + 150,
+        },
+      };
 
-        const toolNode = {
-          id: `tool-${toolId}-${Date.now()}-${index}`,
-          type: 'tool',
-          name: getToolName(toolId),
-          toolType: toolId,
-          position: {
-            x: startX + col * horizontalSpacing,
-            y: startY + row * verticalSpacing,
-          },
-          config: '',
-        };
+      // Create memory to agent edge
+      const memoryEdge = {
+        id: `edge-${memoryNode.id}-to-${newNode.id}`,
+        source: memoryNode.id,
+        target: newNode.id,
+        sourceHandle: 'output',
+        targetHandle: 'memory',
+      };
 
-        // Create edge from tool to agent
-        const toolEdge = {
-          id: `edge-${toolNode.id}-to-${newNode.id}`,
-          source: toolNode.id,
-          target: newNode.id,
-          // Use specific handle if needed
-          // sourceHandle: 'output',
-          // targetHandle: 'tool',
-        };
+      // Add model and memory nodes and edges
+      newNodes.push(modelNode);
+      newNodes.push(memoryNode);
+      newEdges.push(modelEdge);
+      newEdges.push(memoryEdge);
 
-        toolNodes.push(toolNode);
-        toolEdges.push(toolEdge);
-      });
+      // Create tool nodes if any tools are selected
+      if (newNode.tools && newNode.tools.length > 0) {
+        const toolsPerRow = 3;
+        const horizontalSpacing = 170;
+        const verticalSpacing = 120;
+        const startX = newNode.position.x + 200;
+        const startY = newNode.position.y + 150;
 
-      // Add the tool nodes and edges
-      newNodes.push(...toolNodes);
-      newEdges.push(...toolEdges);
+        newNode.tools.forEach((toolId, index) => {
+          const row = Math.floor(index / toolsPerRow);
+          const col = index % toolsPerRow;
 
-      // Remove tools array from agent node since they're now separate nodes
+          const toolNode = {
+            id: `tool-${toolId}-${Date.now()}-${index}`,
+            type: 'tool',
+            name: getToolName(toolId),
+            toolType: toolId,
+            position: {
+              x: startX + col * horizontalSpacing,
+              y: startY + row * verticalSpacing,
+            },
+            config: '',
+          };
+
+          // Create edge from tool to agent
+          const toolEdge = {
+            id: `edge-${toolNode.id}-to-${newNode.id}`,
+            source: toolNode.id,
+            target: newNode.id,
+            sourceHandle: 'output',
+            targetHandle: 'tool',
+          };
+
+          newNodes.push(toolNode);
+          newEdges.push(toolEdge);
+        });
+      }
+
+      // Remove properties from agent node since they're now separate nodes
+      delete newNode.model;
+      delete newNode.memory;
       delete newNode.tools;
     }
 
@@ -185,11 +226,40 @@ const App = () => {
 
   // Delete node
   const handleNodeDelete = (nodeId) => {
-    setNodes(nodes.filter((node) => node.id !== nodeId));
+    const nodeToDelete = nodes.find((node) => node.id === nodeId);
 
-    // Also remove any edges involving this node
+    if (!nodeToDelete) return;
+
+    // For agent nodes, also delete connected model, memory, and tool nodes
+    let nodesToDelete = [nodeId];
+
+    if (nodeToDelete.type === 'agent') {
+      // Find all connected model, memory, and tool nodes
+      edges.forEach((edge) => {
+        if (edge.target === nodeId) {
+          const sourceNode = nodes.find((n) => n.id === edge.source);
+          if (
+            sourceNode &&
+            (sourceNode.type === 'model' ||
+              sourceNode.type === 'memory' ||
+              sourceNode.type === 'tool')
+          ) {
+            nodesToDelete.push(sourceNode.id);
+          }
+        }
+      });
+    }
+
+    // Delete nodes
+    setNodes(nodes.filter((node) => !nodesToDelete.includes(node.id)));
+
+    // Delete edges connected to any of these nodes
     setEdges(
-      edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+      edges.filter(
+        (edge) =>
+          !nodesToDelete.includes(edge.source) &&
+          !nodesToDelete.includes(edge.target)
+      )
     );
 
     if (selectedNode === nodeId) {
@@ -215,6 +285,24 @@ const App = () => {
 
       // Validate connection rules
       if (sourceNode && targetNode) {
+        // Model nodes can only connect to agent nodes
+        if (sourceNode.type === 'model' && targetNode.type !== 'agent') {
+          setErrorModal({
+            isOpen: true,
+            message: 'Model nodes can only connect to Agent nodes.',
+          });
+          return;
+        }
+
+        // Memory nodes can only connect to agent nodes
+        if (sourceNode.type === 'memory' && targetNode.type !== 'agent') {
+          setErrorModal({
+            isOpen: true,
+            message: 'Memory nodes can only connect to Agent nodes.',
+          });
+          return;
+        }
+
         // Tool nodes can only connect to agent nodes
         if (sourceNode.type === 'tool' && targetNode.type !== 'agent') {
           setErrorModal({
