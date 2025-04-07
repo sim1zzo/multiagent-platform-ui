@@ -153,7 +153,6 @@ const AgentNodeForm = ({ node, onUpdate }) => {
     name: '',
     model: 'gpt-4',
     memory: 'chat-history',
-    tools: [],
   });
 
   // Initialize form with node data
@@ -163,18 +162,9 @@ const AgentNodeForm = ({ node, onUpdate }) => {
         name: node.name || '',
         model: node.model || 'gpt-4',
         memory: node.memory || 'chat-history',
-        tools: node.tools || [],
       });
     }
   }, [node]);
-
-  // Available tools
-  const availableTools = [
-    { id: 'rag', name: 'Retrieval Augmented Generation' },
-    { id: 'web-search', name: 'Web Search' },
-    { id: 'code-interpreter', name: 'Code Interpreter' },
-    { id: 'api-connector', name: 'API Connector' },
-  ];
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -183,23 +173,6 @@ const AgentNodeForm = ({ node, onUpdate }) => {
       ...formState,
       [name]: value,
     });
-  };
-
-  // Handle tool toggle
-  const handleToolToggle = (toolId) => {
-    const tools = [...formState.tools];
-
-    if (tools.includes(toolId)) {
-      setFormState({
-        ...formState,
-        tools: tools.filter((id) => id !== toolId),
-      });
-    } else {
-      setFormState({
-        ...formState,
-        tools: [...tools, toolId],
-      });
-    }
   };
 
   // Handle form submission
@@ -274,27 +247,16 @@ const AgentNodeForm = ({ node, onUpdate }) => {
         </div>
 
         <div className='mb-4'>
-          <label className='block text-sm font-medium text-gray-700 mb-1'>
-            Tools
-          </label>
-          <div className='space-y-2 border border-gray-300 rounded-md p-2'>
-            {availableTools.map((tool) => (
-              <div key={tool.id} className='flex items-center'>
-                <input
-                  type='checkbox'
-                  id={`tool-${tool.id}`}
-                  checked={formState.tools.includes(tool.id)}
-                  onChange={() => handleToolToggle(tool.id)}
-                  className='mr-2'
-                />
-                <label
-                  htmlFor={`tool-${tool.id}`}
-                  className='text-sm text-gray-700'
-                >
-                  {tool.name}
-                </label>
-              </div>
-            ))}
+          <h4 className='text-sm font-medium text-gray-700 mb-2'>
+            Connected Tools
+          </h4>
+          <div className='border border-gray-300 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto'>
+            {/* This section would list connected tools, but we don't have access
+                to the edges/nodes here. You could pass this info as props or use context. */}
+            <div className='text-gray-500 text-sm italic'>
+              Tool nodes are managed separately. You can connect tool nodes to
+              this agent by dragging connections in the workflow editor.
+            </div>
           </div>
         </div>
       </div>
@@ -624,6 +586,9 @@ const ToolNodeForm = ({ node, onUpdate }) => {
             <option value='scraper'>Web Scraper</option>
             <option value='database'>Database Connector</option>
             <option value='file'>File Processor</option>
+            <option value='rag'>Retrieval Augmented Generation</option>
+            <option value='web-search'>Web Search</option>
+            <option value='code-interpreter'>Code Interpreter</option>
           </select>
         </div>
 
@@ -643,6 +608,11 @@ const ToolNodeForm = ({ node, onUpdate }) => {
             className='w-full p-2 border border-gray-300 rounded-md'
             placeholder='Tool configuration details'
           />
+        </div>
+
+        <div className='text-xs text-gray-500 italic mb-2'>
+          Note: This tool must be connected to an AI Agent node to function
+          properly.
         </div>
       </div>
 

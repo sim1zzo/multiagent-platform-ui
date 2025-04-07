@@ -117,9 +117,9 @@ const AgentNodeConfig = ({ data, onChange }) => {
 
       <div>
         <label className='block text-sm font-medium text-gray-700 mb-1'>
-          Tools
+          Tools (will be created as separate nodes)
         </label>
-        <div className='space-y-2'>
+        <div className='space-y-2 border border-gray-300 rounded-md p-2'>
           {availableTools.map((tool) => (
             <div key={tool.id} className='flex items-center'>
               <input
@@ -137,6 +137,10 @@ const AgentNodeConfig = ({ data, onChange }) => {
               </label>
             </div>
           ))}
+        </div>
+        <div className='mt-2 text-xs text-gray-500 italic'>
+          Note: Tool nodes will be automatically created and connected to this
+          agent.
         </div>
       </div>
     </div>
