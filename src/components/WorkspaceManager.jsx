@@ -1,21 +1,31 @@
 // components/WorkspaceManager.jsx
 import React, { useCallback } from 'react';
-import ReactFlow, { 
-  Controls, 
-  Background, 
-  useNodesState, 
+import ReactFlow, {
+  Controls,
+  Background,
+  useNodesState,
   useEdgesState,
-  MiniMap
+  MiniMap,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { AgentNode } from './nodes/AgentNode';
+import {
+  TriggerNode,
+  AgentNode,
+  ConditionNode,
+  ActionNode,
+  ToolNode,
+} from './nodes/CustomNodes';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { NavigationPanel } from './NavigationPanel';
 
 // Register custom node types
 const nodeTypes = {
+  trigger: TriggerNode,
   agent: AgentNode,
+  condition: ConditionNode,
+  action: ActionNode,
+  tool: ToolNode,
 };
 
 // Register custom edge types
@@ -24,98 +34,88 @@ const edgeTypes = {
 };
 
 export const WorkspaceManager = ({
-  agents,
-  connections,
-  selectedAgent,
+  nodes,
+  edges,
+  selectedNode,
   workspaceConfig,
-  onAgentSelect,
-  onAgentUpdate,
-  onAgentDelete,
+  onNodeSelect,
+  onNodeUpdate,
+  onNodeDelete,
   onConnectionCreate,
   onConnectionDelete,
   onWorkspaceConfig,
 }) => {
-  // Convert our agents to ReactFlow nodes
-  const initialNodes = agents.map(agent => ({
-    id: agent.id,
-    type: 'agent',
-    position: agent.position,
-    data: { 
-      ...agent,
-      isSelected: agent.id === selectedAgent,
-      onSelect: () => onAgentSelect(agent.id),
-      onDelete: () => onAgentDelete(agent.id),
-    },
-  }));
+  const [reactflowNodes, setNodes, onNodesChange] = useNodesState([]);
+  const [reactflowEdges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Convert our connections to ReactFlow edges
-  const initialEdges = connections.map(connection => ({
-    id: connection.id,
-    source: connection.source,
-    target: connection.target,
-    type: 'custom',
-    data: {
-      ...connection,
-      onDelete: () => onConnectionDelete(connection.id),
-    },
-  }));
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  // Update nodes when agents change
+  // Update nodes when they change
   React.useEffect(() => {
-    setNodes(agents.map(agent => ({
-      id: agent.id,
-      type: 'agent',
-      position: agent.position,
-      data: { 
-        ...agent,
-        isSelected: agent.id === selectedAgent,
-        onSelect: () => onAgentSelect(agent.id),
-        onDelete: () => onAgentDelete(agent.id),
-      },
-    })));
-  }, [agents, selectedAgent, onAgentSelect, onAgentDelete, setNodes]);
+    setNodes(
+      nodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        data: {
+          ...node,
+          isSelected: node.id === selectedNode,
+          onSelect: () => onNodeSelect(node.id),
+          onDelete: () => onNodeDelete(node.id),
+        },
+      }))
+    );
+  }, [nodes, selectedNode, onNodeSelect, onNodeDelete, setNodes]);
 
   // Update edges when connections change
   React.useEffect(() => {
-    setEdges(connections.map(connection => ({
-      id: connection.id,
-      source: connection.source,
-      target: connection.target,
-      type: 'custom',
-      data: {
-        ...connection,
-        onDelete: () => onConnectionDelete(connection.id),
-      },
-    })));
-  }, [connections, onConnectionDelete, setEdges]);
+    setEdges(
+      edges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+        type: 'custom',
+        data: {
+          ...edge,
+          onDelete: () => onConnectionDelete(edge.id),
+        },
+      }))
+    );
+  }, [edges, onConnectionDelete, setEdges]);
 
   // Handle node position changes
-  const onNodeDragStop = useCallback((event, node) => {
-    onAgentUpdate(node.id, { position: node.position });
-  }, [onAgentUpdate]);
+  const onNodeDragStop = useCallback(
+    (event, node) => {
+      onNodeUpdate(node.id, { position: node.position });
+    },
+    [onNodeUpdate]
+  );
 
   // Handle new connections
-  const onConnect = useCallback((params) => {
-    onConnectionCreate(params.source, params.target);
-  }, [onConnectionCreate]);
+  const onConnect = useCallback(
+    (params) => {
+      onConnectionCreate(params);
+    },
+    [onConnectionCreate]
+  );
 
   // Handle zoom changes
-  const onMoveEnd = useCallback((_, viewport) => {
-    onWorkspaceConfig({ 
-      zoom: viewport.zoom,
-      panX: viewport.x,
-      panY: viewport.y,
-    });
-  }, [onWorkspaceConfig]);
+  const onMoveEnd = useCallback(
+    (_, viewport) => {
+      onWorkspaceConfig({
+        zoom: viewport.zoom,
+        panX: viewport.x,
+        panY: viewport.y,
+      });
+    },
+    [onWorkspaceConfig]
+  );
 
   return (
-    <div className="flex-1 h-full relative">
+    <div className='flex-1 h-full relative'>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={reactflowNodes}
+        edges={reactflowEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}
@@ -129,21 +129,34 @@ export const WorkspaceManager = ({
         snapGrid={[20, 20]}
         fitView
       >
-        <Background 
-          color="#aaa" 
-          gap={20} 
+        <Background
+          color='#aaa'
+          gap={20}
           size={1}
-          visible={workspaceConfig.showGrid} 
+          visible={workspaceConfig.showGrid}
         />
         <Controls />
-        <MiniMap 
+        <MiniMap
           nodeColor={(node) => {
-            return node.data.isSelected ? '#ff0072' : '#eee';
+            switch (node.type) {
+              case 'trigger':
+                return '#ef4444'; // red-500
+              case 'agent':
+                return '#3b82f6'; // blue-500
+              case 'condition':
+                return '#a855f7'; // purple-500
+              case 'action':
+                return '#22c55e'; // green-500
+              case 'tool':
+                return '#eab308'; // yellow-500
+              default:
+                return '#94a3b8'; // slate-400
+            }
           }}
         />
       </ReactFlow>
-      
-      <NavigationPanel 
+
+      <NavigationPanel
         config={workspaceConfig}
         onConfigChange={onWorkspaceConfig}
       />
