@@ -2,73 +2,61 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export const ConfigurationPanel = ({ agent, onUpdate, onClose }) => {
+export const ConfigurationPanel = ({ node, onUpdate, onClose }) => {
+  if (!node) return null;
+
+  return (
+    <div className='w-80 h-full border-l border-gray-200 bg-white overflow-y-auto'>
+      <div className='flex items-center justify-between p-4 border-b border-gray-200'>
+        <h2 className='text-lg font-medium'>Node Configuration</h2>
+        <button className='text-gray-500 hover:text-gray-700' onClick={onClose}>
+          <X className='w-5 h-5' />
+        </button>
+      </div>
+
+      <NodeConfigForm node={node} onUpdate={onUpdate} />
+    </div>
+  );
+};
+
+// Shared component for different node type configurations
+const NodeConfigForm = ({ node, onUpdate }) => {
+  if (!node) return null;
+
+  switch (node.type) {
+    case 'trigger':
+      return <TriggerNodeForm node={node} onUpdate={onUpdate} />;
+    case 'agent':
+      return <AgentNodeForm node={node} onUpdate={onUpdate} />;
+    case 'condition':
+      return <ConditionNodeForm node={node} onUpdate={onUpdate} />;
+    case 'action':
+      return <ActionNodeForm node={node} onUpdate={onUpdate} />;
+    case 'tool':
+      return <ToolNodeForm node={node} onUpdate={onUpdate} />;
+    default:
+      return <div>Unknown node type: {node.type}</div>;
+  }
+};
+
+// Trigger Node Configuration
+const TriggerNodeForm = ({ node, onUpdate }) => {
   const [formState, setFormState] = useState({
     name: '',
-    role: '',
-    parameters: {},
-    knowledgeBase: null,
+    triggerType: 'api',
+    payload: '',
   });
 
-  // Initialize form with agent data when selected agent changes
+  // Initialize form with node data
   useEffect(() => {
-    if (agent) {
+    if (node) {
       setFormState({
-        name: agent.name || '',
-        role: agent.role || 'explorer',
-        parameters: { ...agent.parameters } || {},
-        knowledgeBase: agent.knowledgeBase || null,
+        name: node.name || '',
+        triggerType: node.triggerType || 'api',
+        payload: node.payload || '',
       });
     }
-  }, [agent]);
-
-  // Available agent roles
-  const roles = [
-    { id: 'explorer', name: 'Explorer', description: 'Searches for information and resources' },
-    { id: 'planner', name: 'Planner', description: 'Creates strategies and coordinates tasks' },
-    { id: 'communicator', name: 'Communicator', description: 'Interfaces with users and other agents' },
-    { id: 'thinker', name: 'Thinker', description: 'Analyzes data and makes decisions' },
-    { id: 'storage', name: 'Storage', description: 'Stores and retrieves knowledge' },
-    { id: 'executor', name: 'Executor', description: 'Performs actions in the environment' },
-  ];
-
-  // Available knowledge bases
-  const knowledgeBases = [
-    { id: 'general', name: 'General Knowledge' },
-    { id: 'specialized', name: 'Specialized Domain' },
-    { id: 'custom', name: 'Custom Database' },
-  ];
-
-  // Define parameter templates for each role
-  const roleParameters = {
-    explorer: [
-      { id: 'searchDepth', name: 'Search Depth', type: 'number', default: 3 },
-      { id: 'explorationRate', name: 'Exploration Rate', type: 'number', default: 0.7 },
-    ],
-    planner: [
-      { id: 'planningHorizon', name: 'Planning Horizon', type: 'number', default: 5 },
-      { id: 'optimizationGoal', name: 'Optimization Goal', type: 'select', 
-        options: ['efficiency', 'accuracy', 'speed'], default: 'efficiency' },
-    ],
-    communicator: [
-      { id: 'messageFormat', name: 'Message Format', type: 'select', 
-        options: ['json', 'text', 'binary'], default: 'json' },
-      { id: 'communicationFrequency', name: 'Communication Frequency', type: 'number', default: 1 },
-    ],
-    thinker: [
-      { id: 'reasoningDepth', name: 'Reasoning Depth', type: 'number', default: 3 },
-      { id: 'confidenceThreshold', name: 'Confidence Threshold', type: 'number', default: 0.8 },
-    ],
-    storage: [
-      { id: 'storageCapacity', name: 'Storage Capacity', type: 'number', default: 1000 },
-      { id: 'retrievalStrategy', name: 'Retrieval Strategy', type: 'select', 
-        options: ['exact', 'semantic', 'hybrid'], default: 'hybrid' },
-    ],
-    executor: [
-      { id: 'executionPriority', name: 'Execution Priority', type: 'number', default: 5 },
-      { id: 'parallelExecutions', name: 'Parallel Executions', type: 'number', default: 1 },
-    ],
-  };
+  }, [node]);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -79,43 +67,277 @@ export const ConfigurationPanel = ({ agent, onUpdate, onClose }) => {
     });
   };
 
-  // Handle role change and update parameter defaults
-  const handleRoleChange = (e) => {
-    const newRole = e.target.value;
-    const roleParams = { ...formState.parameters };
-    
-    // Add default parameters for the new role
-    if (roleParameters[newRole]) {
-      roleParameters[newRole].forEach(param => {
-        if (!roleParams[param.id]) {
-          roleParams[param.id] = param.default;
-        }
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate(formState);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className='p-4'>
+      <div className='mb-6'>
+        <h3 className='text-sm font-medium text-gray-700 mb-3'>
+          Trigger Configuration
+        </h3>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='name'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Name
+          </label>
+          <input
+            type='text'
+            id='name'
+            name='name'
+            value={formState.name}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='triggerType'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Trigger Type
+          </label>
+          <select
+            id='triggerType'
+            name='triggerType'
+            value={formState.triggerType}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          >
+            <option value='api'>API Call</option>
+            <option value='chat'>Chat Message</option>
+            <option value='workflow'>Workflow Activation</option>
+          </select>
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='payload'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Payload Schema
+          </label>
+          <textarea
+            id='payload'
+            name='payload'
+            value={formState.payload}
+            onChange={handleChange}
+            rows={4}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
+        </div>
+      </div>
+
+      <div className='flex justify-end'>
+        <button
+          type='submit'
+          className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Agent Node Configuration
+const AgentNodeForm = ({ node, onUpdate }) => {
+  const [formState, setFormState] = useState({
+    name: '',
+    model: 'gpt-4',
+    memory: 'chat-history',
+    tools: [],
+  });
+
+  // Initialize form with node data
+  useEffect(() => {
+    if (node) {
+      setFormState({
+        name: node.name || '',
+        model: node.model || 'gpt-4',
+        memory: node.memory || 'chat-history',
+        tools: node.tools || [],
       });
     }
-    
+  }, [node]);
+
+  // Available tools
+  const availableTools = [
+    { id: 'rag', name: 'Retrieval Augmented Generation' },
+    { id: 'web-search', name: 'Web Search' },
+    { id: 'code-interpreter', name: 'Code Interpreter' },
+    { id: 'api-connector', name: 'API Connector' },
+  ];
+
+  // Handle form field changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormState({
       ...formState,
-      role: newRole,
-      parameters: roleParams,
+      [name]: value,
     });
   };
 
-  // Handle parameter changes
-  const handleParameterChange = (paramId, value) => {
-    setFormState({
-      ...formState,
-      parameters: {
-        ...formState.parameters,
-        [paramId]: value,
-      },
-    });
+  // Handle tool toggle
+  const handleToolToggle = (toolId) => {
+    const tools = [...formState.tools];
+
+    if (tools.includes(toolId)) {
+      setFormState({
+        ...formState,
+        tools: tools.filter((id) => id !== toolId),
+      });
+    } else {
+      setFormState({
+        ...formState,
+        tools: [...tools, toolId],
+      });
+    }
   };
 
-  // Handle knowledge base change
-  const handleKnowledgeBaseChange = (e) => {
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate(formState);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className='p-4'>
+      <div className='mb-6'>
+        <h3 className='text-sm font-medium text-gray-700 mb-3'>
+          Agent Configuration
+        </h3>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='name'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Name
+          </label>
+          <input
+            type='text'
+            id='name'
+            name='name'
+            value={formState.name}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='model'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            AI Model
+          </label>
+          <select
+            id='model'
+            name='model'
+            value={formState.model}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          >
+            <option value='gpt-4'>GPT-4</option>
+            <option value='gpt-3.5'>GPT-3.5</option>
+            <option value='claude-3'>Claude 3</option>
+            <option value='llama-3'>Llama 3</option>
+          </select>
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='memory'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Memory Type
+          </label>
+          <select
+            id='memory'
+            name='memory'
+            value={formState.memory}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          >
+            <option value='chat-history'>Chat History</option>
+            <option value='vector-store'>Vector Store</option>
+            <option value='stateless'>Stateless</option>
+          </select>
+        </div>
+
+        <div className='mb-4'>
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
+            Tools
+          </label>
+          <div className='space-y-2 border border-gray-300 rounded-md p-2'>
+            {availableTools.map((tool) => (
+              <div key={tool.id} className='flex items-center'>
+                <input
+                  type='checkbox'
+                  id={`tool-${tool.id}`}
+                  checked={formState.tools.includes(tool.id)}
+                  onChange={() => handleToolToggle(tool.id)}
+                  className='mr-2'
+                />
+                <label
+                  htmlFor={`tool-${tool.id}`}
+                  className='text-sm text-gray-700'
+                >
+                  {tool.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className='flex justify-end'>
+        <button
+          type='submit'
+          className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Condition Node Configuration
+const ConditionNodeForm = ({ node, onUpdate }) => {
+  const [formState, setFormState] = useState({
+    name: '',
+    condition: '',
+    trueLabel: 'True',
+    falseLabel: 'False',
+  });
+
+  // Initialize form with node data
+  useEffect(() => {
+    if (node) {
+      setFormState({
+        name: node.name || '',
+        condition: node.condition || '',
+        trueLabel: node.trueLabel || 'True',
+        falseLabel: node.falseLabel || 'False',
+      });
+    }
+  }, [node]);
+
+  // Handle form field changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormState({
       ...formState,
-      knowledgeBase: e.target.value,
+      [name]: value,
     });
   };
 
@@ -125,151 +347,313 @@ export const ConfigurationPanel = ({ agent, onUpdate, onClose }) => {
     onUpdate(formState);
   };
 
-  // Get current role parameters
-  const currentRoleParams = roleParameters[formState.role] || [];
-
-  if (!agent) return null;
-
   return (
-    <div className="w-80 h-full border-l border-gray-200 bg-white overflow-y-auto">
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 className="text-lg font-medium">Agent Configuration</h2>
-        <button
-          className="text-gray-500 hover:text-gray-700"
-          onClick={onClose}
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+    <form onSubmit={handleSubmit} className='p-4'>
+      <div className='mb-6'>
+        <h3 className='text-sm font-medium text-gray-700 mb-3'>
+          Condition Configuration
+        </h3>
 
-      <form onSubmit={handleSubmit} className="p-4">
-        {/* Basic Information */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Basic Information</h3>
-          
-          <div className="mb-4">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Name
+        <div className='mb-4'>
+          <label
+            htmlFor='name'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Name
+          </label>
+          <input
+            type='text'
+            id='name'
+            name='name'
+            value={formState.name}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='condition'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Condition Expression
+          </label>
+          <textarea
+            id='condition'
+            name='condition'
+            value={formState.condition}
+            onChange={handleChange}
+            rows={4}
+            className='w-full p-2 border border-gray-300 rounded-md'
+            placeholder="e.g., {{response.sentiment}} === 'positive'"
+          />
+        </div>
+
+        <div className='grid grid-cols-2 gap-4'>
+          <div>
+            <label
+              htmlFor='trueLabel'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              True Path Label
             </label>
             <input
-              type="text"
-              id="name"
-              name="name"
-              value={formState.name}
+              type='text'
+              id='trueLabel'
+              name='trueLabel'
+              value={formState.trueLabel}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded-md"
+              className='w-full p-2 border border-gray-300 rounded-md'
             />
           </div>
-          
-          <div className="mb-4">
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <select
-              id="role"
-              name="role"
-              value={formState.role}
-              onChange={handleRoleChange}
-              className="w-full p-2 border border-gray-300 rounded-md"
+
+          <div>
+            <label
+              htmlFor='falseLabel'
+              className='block text-sm font-medium text-gray-700 mb-1'
             >
-              {roles.map(role => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {roles.find(r => r.id === formState.role)?.description}
-            </p>
+              False Path Label
+            </label>
+            <input
+              type='text'
+              id='falseLabel'
+              name='falseLabel'
+              value={formState.falseLabel}
+              onChange={handleChange}
+              className='w-full p-2 border border-gray-300 rounded-md'
+            />
           </div>
         </div>
-        
-        {/* Parameters */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Behavior Parameters</h3>
-          
-          {currentRoleParams.length > 0 ? (
-            currentRoleParams.map(param => (
-              <div key={param.id} className="mb-4">
-                <label htmlFor={param.id} className="block text-sm font-medium text-gray-700 mb-1">
-                  {param.name}
-                </label>
-                
-                {param.type === 'select' ? (
-                  <select
-                    id={param.id}
-                    value={formState.parameters[param.id] || param.default}
-                    onChange={(e) => handleParameterChange(param.id, e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                  >
-                    {param.options.map(option => (
-                      <option key={option} value={option}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={param.type}
-                    id={param.id}
-                    value={formState.parameters[param.id] || param.default}
-                    onChange={(e) => {
-                      const value = param.type === 'number' 
-                        ? parseFloat(e.target.value) 
-                        : e.target.value;
-                      handleParameterChange(param.id, value);
-                    }}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                  />
-                )}
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">No parameters available for this role.</p>
-          )}
-        </div>
-        
-        {/* Knowledge Base */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Knowledge Base</h3>
-          
-          <div className="mb-4">
-            <label htmlFor="knowledgeBase" className="block text-sm font-medium text-gray-700 mb-1">
-              Connect to Knowledge Base
-            </label>
-            <select
-              id="knowledgeBase"
-              value={formState.knowledgeBase || ''}
-              onChange={handleKnowledgeBaseChange}
-              className="w-full p-2 border border-gray-300 rounded-md"
-            >
-              <option value="">None</option>
-              {knowledgeBases.map(kb => (
-                <option key={kb.id} value={kb.id}>
-                  {kb.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        {/* Actions */}
-        <div className="flex justify-end">
-          <button
-            type="button"
-            className="px-4 py-2 mr-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            onClick={onClose}
+      </div>
+
+      <div className='flex justify-end'>
+        <button
+          type='submit'
+          className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Action Node Configuration
+const ActionNodeForm = ({ node, onUpdate }) => {
+  const [formState, setFormState] = useState({
+    name: '',
+    actionType: 'slack',
+    config: '',
+  });
+
+  // Initialize form with node data
+  useEffect(() => {
+    if (node) {
+      setFormState({
+        name: node.name || '',
+        actionType: node.actionType || 'slack',
+        config: node.config || '',
+      });
+    }
+  }, [node]);
+
+  // Handle form field changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormState({
+      ...formState,
+      [name]: value,
+    });
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate(formState);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className='p-4'>
+      <div className='mb-6'>
+        <h3 className='text-sm font-medium text-gray-700 mb-3'>
+          Action Configuration
+        </h3>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='name'
+            className='block text-sm font-medium text-gray-700 mb-1'
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Save Changes
-          </button>
+            Name
+          </label>
+          <input
+            type='text'
+            id='name'
+            name='name'
+            value={formState.name}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
         </div>
-      </form>
-    </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='actionType'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Action Type
+          </label>
+          <select
+            id='actionType'
+            name='actionType'
+            value={formState.actionType}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          >
+            <option value='slack'>Send Slack Message</option>
+            <option value='jira'>Create Jira Task</option>
+            <option value='email'>Send Email</option>
+            <option value='code'>Execute Code</option>
+          </select>
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='config'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Configuration
+          </label>
+          <textarea
+            id='config'
+            name='config'
+            value={formState.config}
+            onChange={handleChange}
+            rows={4}
+            className='w-full p-2 border border-gray-300 rounded-md'
+            placeholder='Configuration details and parameters'
+          />
+        </div>
+      </div>
+
+      <div className='flex justify-end'>
+        <button
+          type='submit'
+          className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Tool Node Configuration
+const ToolNodeForm = ({ node, onUpdate }) => {
+  const [formState, setFormState] = useState({
+    name: '',
+    toolType: 'api',
+    config: '',
+  });
+
+  // Initialize form with node data
+  useEffect(() => {
+    if (node) {
+      setFormState({
+        name: node.name || '',
+        toolType: node.toolType || 'api',
+        config: node.config || '',
+      });
+    }
+  }, [node]);
+
+  // Handle form field changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormState({
+      ...formState,
+      [name]: value,
+    });
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate(formState);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className='p-4'>
+      <div className='mb-6'>
+        <h3 className='text-sm font-medium text-gray-700 mb-3'>
+          Tool Configuration
+        </h3>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='name'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Name
+          </label>
+          <input
+            type='text'
+            id='name'
+            name='name'
+            value={formState.name}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='toolType'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Tool Type
+          </label>
+          <select
+            id='toolType'
+            name='toolType'
+            value={formState.toolType}
+            onChange={handleChange}
+            className='w-full p-2 border border-gray-300 rounded-md'
+          >
+            <option value='api'>API Connector</option>
+            <option value='scraper'>Web Scraper</option>
+            <option value='database'>Database Connector</option>
+            <option value='file'>File Processor</option>
+          </select>
+        </div>
+
+        <div className='mb-4'>
+          <label
+            htmlFor='config'
+            className='block text-sm font-medium text-gray-700 mb-1'
+          >
+            Configuration
+          </label>
+          <textarea
+            id='config'
+            name='config'
+            value={formState.config}
+            onChange={handleChange}
+            rows={4}
+            className='w-full p-2 border border-gray-300 rounded-md'
+            placeholder='Tool configuration details'
+          />
+        </div>
+      </div>
+
+      <div className='flex justify-end'>
+        <button
+          type='submit'
+          className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
   );
 };
