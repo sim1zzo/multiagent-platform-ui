@@ -1,5 +1,5 @@
 // App.jsx - Main container component
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { WorkspaceManager } from './components/WorkspaceManager';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
@@ -8,11 +8,21 @@ import { NodeCreationModal } from './components/modals/NodeCreationModal';
 import { ErrorModal } from './components/modals/ErrorModal';
 
 const App = () => {
+  // Active page state - without using context for now
+  const [activePage, setActivePage] = useState('workflow');
+  
+  // Mock user profile for demonstration
+  const [userProfile, setUserProfile] = useState({
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    role: 'Administrator'
+  });
+  
   // Workflow state
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
-
+  
   // UI state
   const [workspaceConfig, setWorkspaceConfig] = useState({
     zoom: 1,
@@ -20,22 +30,32 @@ const App = () => {
     panY: 0,
     showGrid: true,
     snapToGrid: true,
+    darkMode: false,
   });
-
+  
   // Modal state
   const [nodeCreationModal, setNodeCreationModal] = useState({
     isOpen: false,
     nodeType: null,
   });
-
+  
   const [errorModal, setErrorModal] = useState({
     isOpen: false,
     message: '',
   });
 
+  // Apply dark mode classes to body
+  useEffect(() => {
+    if (workspaceConfig.darkMode) {
+      document.body.classList.add('dark', 'bg-gray-900');
+    } else {
+      document.body.classList.remove('dark', 'bg-gray-900');
+    }
+  }, [workspaceConfig.darkMode]);
+
   // Check if a trigger node exists
   const hasTriggerNode = () => {
-    return nodes.some((node) => node.type === 'trigger');
+    return nodes.some(node => node.type === 'trigger');
   };
 
   // Initialize node creation - check rules before opening modal
@@ -44,12 +64,11 @@ const App = () => {
     if (nodes.length === 0 && nodeType !== 'trigger') {
       setErrorModal({
         isOpen: true,
-        message:
-          'The first node in a workflow must be a Trigger Node. Please add a Trigger Node before adding other nodes.',
+        message: 'The first node in a workflow must be a Trigger Node. Please add a Trigger Node before adding other nodes.',
       });
       return;
     }
-
+    
     // Show node creation modal
     setNodeCreationModal({
       isOpen: true,
@@ -66,7 +85,7 @@ const App = () => {
       position: { x: 100, y: 100 }, // Default position
       ...nodeData,
     };
-
+    
     setNodes([...nodes, newNode]);
     setSelectedNode(newNode.id);
     setNodeCreationModal({ isOpen: false, nodeType: null });
@@ -84,20 +103,20 @@ const App = () => {
 
   // Update node
   const handleNodeUpdate = (nodeId, updates) => {
-    setNodes(
-      nodes.map((node) => (node.id === nodeId ? { ...node, ...updates } : node))
-    );
+    setNodes(nodes.map(node => 
+      node.id === nodeId ? { ...node, ...updates } : node
+    ));
   };
 
   // Delete node
   const handleNodeDelete = (nodeId) => {
-    setNodes(nodes.filter((node) => node.id !== nodeId));
-
+    setNodes(nodes.filter(node => node.id !== nodeId));
+    
     // Also remove any edges involving this node
-    setEdges(
-      edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
-    );
-
+    setEdges(edges.filter(
+      edge => edge.source !== nodeId && edge.target !== nodeId
+    ));
+    
     if (selectedNode === nodeId) {
       setSelectedNode(null);
     }
@@ -107,13 +126,12 @@ const App = () => {
   const handleConnectionCreate = (params) => {
     // Check if connection already exists
     const connectionExists = edges.some(
-      (edge) =>
-        edge.source === params.source &&
-        edge.target === params.target &&
-        edge.sourceHandle === params.sourceHandle &&
-        edge.targetHandle === params.targetHandle
+      edge => edge.source === params.source && 
+             edge.target === params.target &&
+             edge.sourceHandle === params.sourceHandle &&
+             edge.targetHandle === params.targetHandle
     );
-
+    
     if (!connectionExists && params.source !== params.target) {
       const newEdge = {
         id: `edge-${Date.now()}`,
@@ -122,19 +140,63 @@ const App = () => {
         sourceHandle: params.sourceHandle,
         targetHandle: params.targetHandle,
       };
-
+      
       setEdges([...edges, newEdge]);
     }
   };
 
   // Delete connection
   const handleConnectionDelete = (edgeId) => {
-    setEdges(edges.filter((edge) => edge.id !== edgeId));
+    setEdges(edges.filter(edge => edge.id !== edgeId));
   };
 
   // Update workspace configuration
   const handleWorkspaceConfig = (updates) => {
     setWorkspaceConfig({ ...workspaceConfig, ...updates });
+  };
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    const newDarkMode = !workspaceConfig.darkMode;
+    setWorkspaceConfig({
+      ...workspaceConfig,
+      darkMode: newDarkMode
+    });
+  };
+
+  // Export workspace
+  const handleExportWorkflow = () => {
+    const workspace = {
+      nodes,
+      edges,
+      config: workspaceConfig,
+    };
+    
+    // Create a JSON Blob
+    const jsonBlob = new Blob([JSON.stringify(workspace, null, 2)], { type: 'application/json' });
+    
+    // Create a download link
+    const url = URL.createObjectURL(jsonBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `workflow-export-${new Date().toISOString().slice(0, 10)}.json`;
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Reset workspace
+  const handleResetWorkflow = () => {
+    if (window.confirm('Are you sure you want to reset the workspace? All unsaved changes will be lost.')) {
+      setNodes([]);
+      setEdges([]);
+      setSelectedNode(null);
+    }
   };
 
   // Save workspace
@@ -144,10 +206,10 @@ const App = () => {
       edges,
       config: workspaceConfig,
     };
-
+    
     const workspaceJson = JSON.stringify(workspace);
     localStorage.setItem('workflow-workspace', workspaceJson);
-
+    
     // In a real application, you would likely save to a server
     console.log('Workspace saved', workspace);
   };
@@ -155,7 +217,7 @@ const App = () => {
   // Load workspace
   const handleLoadWorkspace = () => {
     const savedWorkspace = localStorage.getItem('workflow-workspace');
-
+    
     if (savedWorkspace) {
       try {
         const workspace = JSON.parse(savedWorkspace);
@@ -173,13 +235,34 @@ const App = () => {
     }
   };
 
+  // Navigation function for the header
+  const navigateTo = (page) => {
+    setActivePage(page);
+    // For simplicity, we'll just redirect back to workflow for now
+    if (page !== 'workflow') {
+      alert(`Navigation to ${page} page - This would show the ${page} interface if fully implemented`);
+      // Redirect back to workflow for demo purposes
+      setActivePage('workflow');
+    }
+  };
+
   return (
-    <div className='h-screen flex flex-col'>
-      <Header onSave={handleSaveWorkspace} onLoad={handleLoadWorkspace} />
-
-      <div className='flex flex-1 overflow-hidden'>
+    <div className={`h-screen flex flex-col ${workspaceConfig.darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50'}`}>
+      <Header 
+        onSave={handleSaveWorkspace} 
+        onLoad={handleLoadWorkspace} 
+        onExport={handleExportWorkflow}
+        onReset={handleResetWorkflow}
+        darkMode={workspaceConfig.darkMode}
+        toggleDarkMode={toggleDarkMode}
+        navigateTo={navigateTo}
+        activePage={activePage}
+        userName={userProfile.name}
+      />
+      
+      <div className="flex flex-1 overflow-hidden">
         <Toolbar onNodeCreate={handleInitNodeCreate} />
-
+        
         <WorkspaceManager
           nodes={nodes}
           edges={edges}
@@ -192,16 +275,16 @@ const App = () => {
           onConnectionDelete={handleConnectionDelete}
           onWorkspaceConfig={handleWorkspaceConfig}
         />
-
+        
         {selectedNode && (
           <ConfigurationPanel
-            node={nodes.find((n) => n.id === selectedNode)}
+            node={nodes.find(n => n.id === selectedNode)}
             onUpdate={(updates) => handleNodeUpdate(selectedNode, updates)}
             onClose={() => setSelectedNode(null)}
           />
         )}
       </div>
-
+      
       {/* Modals */}
       <NodeCreationModal
         isOpen={nodeCreationModal.isOpen}
@@ -209,7 +292,7 @@ const App = () => {
         onConfirm={handleNodeCreate}
         onCancel={handleCancelNodeCreate}
       />
-
+      
       <ErrorModal
         isOpen={errorModal.isOpen}
         message={errorModal.message}
