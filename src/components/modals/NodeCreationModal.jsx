@@ -1,13 +1,28 @@
 // components/modals/NodeCreationModal.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 
 const TriggerNodeConfig = ({ data, onChange }) => {
-  const [triggerType, setTriggerType] = useState(data.triggerType || 'api');
+  const [triggerType, setTriggerType] = useState(data?.triggerType || 'api');
+  const [payload, setPayload] = useState(data?.payload || '');
 
   useEffect(() => {
-    onChange({ ...data, triggerType });
-  }, [triggerType]);
+    if (onChange) {
+      onChange({ ...data, triggerType, payload });
+    }
+  }, [triggerType, payload, data, onChange]);
+
+  const handleTriggerTypeChange = (e) => {
+    if (e && e.target) {
+      setTriggerType(e.target.value);
+    }
+  };
+
+  const handlePayloadChange = (e) => {
+    if (e && e.target) {
+      setPayload(e.target.value);
+    }
+  };
 
   return (
     <div className='space-y-4'>
@@ -21,7 +36,7 @@ const TriggerNodeConfig = ({ data, onChange }) => {
         <select
           id='triggerType'
           value={triggerType}
-          onChange={(e) => setTriggerType(e.target.value)}
+          onChange={handleTriggerTypeChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='api'>API Call</option>
@@ -39,8 +54,8 @@ const TriggerNodeConfig = ({ data, onChange }) => {
         </label>
         <textarea
           id='payload'
-          value={data.payload || ''}
-          onChange={(e) => onChange({ ...data, payload: e.target.value })}
+          value={payload}
+          onChange={handlePayloadChange}
           className='w-full p-2 border border-gray-300 rounded-md'
           rows={4}
           placeholder='Define payload schema here...'
@@ -51,9 +66,9 @@ const TriggerNodeConfig = ({ data, onChange }) => {
 };
 
 const AgentNodeConfig = ({ data, onChange }) => {
-  const [model, setModel] = useState(data.model || 'gpt-4');
-  const [memory, setMemory] = useState(data.memory || 'chat-history');
-  const [tools, setTools] = useState(data.tools || []);
+  const [model, setModel] = useState(data?.model || 'gpt-4');
+  const [memory, setMemory] = useState(data?.memory || 'chat-history');
+  const [tools, setTools] = useState(data?.tools || []);
 
   const availableTools = [
     { id: 'rag', name: 'Retrieval Augmented Generation' },
@@ -63,15 +78,32 @@ const AgentNodeConfig = ({ data, onChange }) => {
   ];
 
   useEffect(() => {
-    onChange({ ...data, model, memory, tools });
-  }, [model, memory, tools]);
-
-  const handleToolToggle = (toolId) => {
-    if (tools.includes(toolId)) {
-      setTools(tools.filter((id) => id !== toolId));
-    } else {
-      setTools([...tools, toolId]);
+    if (onChange) {
+      onChange({ ...data, model, memory, tools });
     }
+  }, [model, memory, tools, data, onChange]);
+
+  const handleModelChange = (e) => {
+    if (e && e.target) {
+      setModel(e.target.value);
+    }
+  };
+
+  const handleMemoryChange = (e) => {
+    if (e && e.target) {
+      setMemory(e.target.value);
+    }
+  };
+
+  // Simple tool toggle function without using the event object
+  const handleToolToggle = (toolId) => {
+    setTools((currentTools) => {
+      if (currentTools.includes(toolId)) {
+        return currentTools.filter((id) => id !== toolId);
+      } else {
+        return [...currentTools, toolId];
+      }
+    });
   };
 
   return (
@@ -86,7 +118,7 @@ const AgentNodeConfig = ({ data, onChange }) => {
         <select
           id='model'
           value={model}
-          onChange={(e) => setModel(e.target.value)}
+          onChange={handleModelChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='gpt-4'>GPT-4</option>
@@ -109,7 +141,7 @@ const AgentNodeConfig = ({ data, onChange }) => {
         <select
           id='memory'
           value={memory}
-          onChange={(e) => setMemory(e.target.value)}
+          onChange={handleMemoryChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='chat-history'>Chat History</option>
@@ -130,24 +162,25 @@ const AgentNodeConfig = ({ data, onChange }) => {
         <div className='space-y-2 border border-gray-300 rounded-md p-2'>
           {availableTools.map((tool) => (
             <div key={tool.id} className='flex items-center'>
-              <input
-                type='checkbox'
-                id={`tool-${tool.id}`}
-                checked={tools.includes(tool.id)}
-                onChange={() => handleToolToggle(tool.id)}
-                className='mr-2'
-              />
-              <label
-                htmlFor={`tool-${tool.id}`}
-                className='text-sm text-gray-700'
+              {/* Simple div click handler instead of checkbox */}
+              <div
+                className='flex items-center cursor-pointer w-full py-1 px-1 hover:bg-gray-50'
+                onClick={() => handleToolToggle(tool.id)}
               >
-                {tool.name}
-              </label>
+                {/* Custom checkbox appearance */}
+                <div className='mr-2 h-4 w-4 flex items-center justify-center border border-gray-300 rounded'>
+                  {tools.includes(tool.id) && (
+                    <div className='h-2 w-2 bg-blue-600 rounded-sm'></div>
+                  )}
+                </div>
+                <span className='text-sm text-gray-700'>{tool.name}</span>
+              </div>
             </div>
           ))}
         </div>
         <div className='mt-1 text-xs text-gray-500 italic'>
-          Each selected tool will be created as a separate node connected to the Agent.
+          Each selected tool will be created as a separate node connected to the
+          Agent.
         </div>
       </div>
     </div>
@@ -155,6 +188,42 @@ const AgentNodeConfig = ({ data, onChange }) => {
 };
 
 const ConditionNodeConfig = ({ data, onChange }) => {
+  // Add local state to manage form values
+  const [condition, setCondition] = useState(data?.condition || '');
+  const [trueLabel, setTrueLabel] = useState(data?.trueLabel || 'True');
+  const [falseLabel, setFalseLabel] = useState(data?.falseLabel || 'False');
+
+  // Update parent when state changes
+  useEffect(() => {
+    if (onChange) {
+      onChange({
+        ...data,
+        condition,
+        trueLabel,
+        falseLabel,
+      });
+    }
+  }, [condition, trueLabel, falseLabel, data, onChange]);
+
+  // Safe event handlers with validation
+  const handleConditionChange = (e) => {
+    if (e && e.target) {
+      setCondition(e.target.value);
+    }
+  };
+
+  const handleTrueLabelChange = (e) => {
+    if (e && e.target) {
+      setTrueLabel(e.target.value);
+    }
+  };
+
+  const handleFalseLabelChange = (e) => {
+    if (e && e.target) {
+      setFalseLabel(e.target.value);
+    }
+  };
+
   return (
     <div className='space-y-4'>
       <div>
@@ -166,8 +235,8 @@ const ConditionNodeConfig = ({ data, onChange }) => {
         </label>
         <textarea
           id='condition'
-          value={data.condition || ''}
-          onChange={(e) => onChange({ ...data, condition: e.target.value })}
+          value={condition}
+          onChange={handleConditionChange}
           className='w-full p-2 border border-gray-300 rounded-md'
           rows={4}
           placeholder="e.g., {{response.sentiment}} === 'positive'"
@@ -185,8 +254,8 @@ const ConditionNodeConfig = ({ data, onChange }) => {
           <input
             type='text'
             id='trueLabel'
-            value={data.trueLabel || 'True'}
-            onChange={(e) => onChange({ ...data, trueLabel: e.target.value })}
+            value={trueLabel}
+            onChange={handleTrueLabelChange}
             className='w-full p-2 border border-gray-300 rounded-md'
           />
         </div>
@@ -201,8 +270,8 @@ const ConditionNodeConfig = ({ data, onChange }) => {
           <input
             type='text'
             id='falseLabel'
-            value={data.falseLabel || 'False'}
-            onChange={(e) => onChange({ ...data, falseLabel: e.target.value })}
+            value={falseLabel}
+            onChange={handleFalseLabelChange}
             className='w-full p-2 border border-gray-300 rounded-md'
           />
         </div>
@@ -212,11 +281,26 @@ const ConditionNodeConfig = ({ data, onChange }) => {
 };
 
 const ActionNodeConfig = ({ data, onChange }) => {
-  const [actionType, setActionType] = useState(data.actionType || 'slack');
+  const [actionType, setActionType] = useState(data?.actionType || 'slack');
+  const [config, setConfig] = useState(data?.config || '');
 
   useEffect(() => {
-    onChange({ ...data, actionType });
-  }, [actionType]);
+    if (onChange) {
+      onChange({ ...data, actionType, config });
+    }
+  }, [actionType, config, data, onChange]);
+
+  const handleActionTypeChange = (e) => {
+    if (e && e.target) {
+      setActionType(e.target.value);
+    }
+  };
+
+  const handleConfigChange = (e) => {
+    if (e && e.target) {
+      setConfig(e.target.value);
+    }
+  };
 
   return (
     <div className='space-y-4'>
@@ -230,7 +314,7 @@ const ActionNodeConfig = ({ data, onChange }) => {
         <select
           id='actionType'
           value={actionType}
-          onChange={(e) => setActionType(e.target.value)}
+          onChange={handleActionTypeChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='slack'>Send Slack Message</option>
@@ -249,8 +333,8 @@ const ActionNodeConfig = ({ data, onChange }) => {
         </label>
         <textarea
           id='config'
-          value={data.config || ''}
-          onChange={(e) => onChange({ ...data, config: e.target.value })}
+          value={config}
+          onChange={handleConfigChange}
           className='w-full p-2 border border-gray-300 rounded-md'
           rows={4}
           placeholder='Add configuration details...'
@@ -261,11 +345,26 @@ const ActionNodeConfig = ({ data, onChange }) => {
 };
 
 const ToolNodeConfig = ({ data, onChange }) => {
-  const [toolType, setToolType] = useState(data.toolType || 'api');
+  const [toolType, setToolType] = useState(data?.toolType || 'api');
+  const [config, setConfig] = useState(data?.config || '');
 
   useEffect(() => {
-    onChange({ ...data, toolType });
-  }, [toolType]);
+    if (onChange) {
+      onChange({ ...data, toolType, config });
+    }
+  }, [toolType, config, data, onChange]);
+
+  const handleToolTypeChange = (e) => {
+    if (e && e.target) {
+      setToolType(e.target.value);
+    }
+  };
+
+  const handleConfigChange = (e) => {
+    if (e && e.target) {
+      setConfig(e.target.value);
+    }
+  };
 
   return (
     <div className='space-y-4'>
@@ -279,7 +378,7 @@ const ToolNodeConfig = ({ data, onChange }) => {
         <select
           id='toolType'
           value={toolType}
-          onChange={(e) => setToolType(e.target.value)}
+          onChange={handleToolTypeChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='api'>API Connector</option>
@@ -298,8 +397,8 @@ const ToolNodeConfig = ({ data, onChange }) => {
         </label>
         <textarea
           id='config'
-          value={data.config || ''}
-          onChange={(e) => onChange({ ...data, config: e.target.value })}
+          value={config}
+          onChange={handleConfigChange}
           className='w-full p-2 border border-gray-300 rounded-md'
           rows={4}
           placeholder='Add configuration details...'
@@ -310,11 +409,26 @@ const ToolNodeConfig = ({ data, onChange }) => {
 };
 
 const ModelNodeConfig = ({ data, onChange }) => {
-  const [modelType, setModelType] = useState(data.modelType || 'gpt-4');
+  const [modelType, setModelType] = useState(data?.modelType || 'gpt-4');
+  const [config, setConfig] = useState(data?.config || '');
 
   useEffect(() => {
-    onChange({ ...data, modelType });
-  }, [modelType]);
+    if (onChange) {
+      onChange({ ...data, modelType, config });
+    }
+  }, [modelType, config, data, onChange]);
+
+  const handleModelTypeChange = (e) => {
+    if (e && e.target) {
+      setModelType(e.target.value);
+    }
+  };
+
+  const handleConfigChange = (e) => {
+    if (e && e.target) {
+      setConfig(e.target.value);
+    }
+  };
 
   return (
     <div className='space-y-4'>
@@ -328,7 +442,7 @@ const ModelNodeConfig = ({ data, onChange }) => {
         <select
           id='modelType'
           value={modelType}
-          onChange={(e) => setModelType(e.target.value)}
+          onChange={handleModelTypeChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='gpt-4'>GPT-4</option>
@@ -347,8 +461,8 @@ const ModelNodeConfig = ({ data, onChange }) => {
         </label>
         <textarea
           id='config'
-          value={data.config || ''}
-          onChange={(e) => onChange({ ...data, config: e.target.value })}
+          value={config}
+          onChange={handleConfigChange}
           className='w-full p-2 border border-gray-300 rounded-md'
           rows={4}
           placeholder='Add configuration details...'
@@ -359,11 +473,28 @@ const ModelNodeConfig = ({ data, onChange }) => {
 };
 
 const MemoryNodeConfig = ({ data, onChange }) => {
-  const [memoryType, setMemoryType] = useState(data.memoryType || 'chat-history');
+  const [memoryType, setMemoryType] = useState(
+    data?.memoryType || 'chat-history'
+  );
+  const [config, setConfig] = useState(data?.config || '');
 
   useEffect(() => {
-    onChange({ ...data, memoryType });
-  }, [memoryType]);
+    if (onChange) {
+      onChange({ ...data, memoryType, config });
+    }
+  }, [memoryType, config, data, onChange]);
+
+  const handleMemoryTypeChange = (e) => {
+    if (e && e.target) {
+      setMemoryType(e.target.value);
+    }
+  };
+
+  const handleConfigChange = (e) => {
+    if (e && e.target) {
+      setConfig(e.target.value);
+    }
+  };
 
   return (
     <div className='space-y-4'>
@@ -377,7 +508,7 @@ const MemoryNodeConfig = ({ data, onChange }) => {
         <select
           id='memoryType'
           value={memoryType}
-          onChange={(e) => setMemoryType(e.target.value)}
+          onChange={handleMemoryTypeChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='chat-history'>Chat History</option>
@@ -397,8 +528,8 @@ const MemoryNodeConfig = ({ data, onChange }) => {
         </label>
         <textarea
           id='config'
-          value={data.config || ''}
-          onChange={(e) => onChange({ ...data, config: e.target.value })}
+          value={config}
+          onChange={handleConfigChange}
           className='w-full p-2 border border-gray-300 rounded-md'
           rows={4}
           placeholder='Add configuration details...'
@@ -420,6 +551,7 @@ export const NodeCreationModal = ({
     ...initialData,
   });
 
+  // Reset the form when nodeType or initialData changes
   useEffect(() => {
     setNodeData({
       name: initialData.name || '',
@@ -427,26 +559,57 @@ export const NodeCreationModal = ({
     });
   }, [initialData, nodeType]);
 
+  // Safe update function for node data
+  const updateNodeData = useCallback((data) => {
+    if (data) {
+      setNodeData((prevData) => ({
+        ...prevData,
+        ...data,
+      }));
+    }
+  }, []);
+
+  // Handle name change safely
+  const handleNameChange = (e) => {
+    // Ensure we have a valid event with a target
+    if (e && e.target && e.target.value !== undefined) {
+      // Use functional state update to ensure we have the latest state
+      setNodeData((prevData) => ({
+        ...prevData,
+        name: e.target.value,
+      }));
+    }
+  };
+
   if (!isOpen) return null;
 
+  // Render the appropriate config form for the node type
   const renderConfigForm = () => {
+    // Make sure nodeType is valid before rendering
+    if (!nodeType) {
+      return <div>No node type specified</div>;
+    }
+
     switch (nodeType) {
       case 'trigger':
-        return <TriggerNodeConfig data={nodeData} onChange={setNodeData} />;
+        return <TriggerNodeConfig data={nodeData} onChange={updateNodeData} />;
       case 'agent':
-        return <AgentNodeConfig data={nodeData} onChange={setNodeData} />;
+        return <AgentNodeConfig data={nodeData} onChange={updateNodeData} />;
       case 'condition':
-        return <ConditionNodeConfig data={nodeData} onChange={setNodeData} />;
+        return (
+          <ConditionNodeConfig data={nodeData} onChange={updateNodeData} />
+        );
       case 'action':
-        return <ActionNodeConfig data={nodeData} onChange={setNodeData} />;
+        return <ActionNodeConfig data={nodeData} onChange={updateNodeData} />;
       case 'tool':
-        return <ToolNodeConfig data={nodeData} onChange={setNodeData} />;
+        return <ToolNodeConfig data={nodeData} onChange={updateNodeData} />;
       case 'model':
-        return <ModelNodeConfig data={nodeData} onChange={setNodeData} />;
+        return <ModelNodeConfig data={nodeData} onChange={updateNodeData} />;
       case 'memory':
-        return <MemoryNodeConfig data={nodeData} onChange={setNodeData} />;
+        return <MemoryNodeConfig data={nodeData} onChange={updateNodeData} />;
       default:
-        return <div>Unknown node type</div>;
+        console.warn(`Unknown node type: ${nodeType}`);
+        return <div>Unknown node type: {nodeType}</div>;
     }
   };
 
@@ -455,7 +618,8 @@ export const NodeCreationModal = ({
       <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
         <div className='flex items-center justify-between p-4 border-b border-gray-200'>
           <h2 className='text-lg font-medium'>
-            Configure {nodeType.charAt(0).toUpperCase() + nodeType.slice(1)}{' '}
+            Configure{' '}
+            {nodeType && nodeType.charAt(0).toUpperCase() + nodeType.slice(1)}{' '}
             Node
           </h2>
           <button
@@ -477,12 +641,12 @@ export const NodeCreationModal = ({
             <input
               type='text'
               id='nodeName'
+              name='nodeName'
               value={nodeData.name}
-              onChange={(e) =>
-                setNodeData({ ...nodeData, name: e.target.value })
-              }
+              onChange={handleNameChange}
               className='w-full p-2 border border-gray-300 rounded-md'
               placeholder='Enter node name...'
+              autoComplete='off'
             />
           </div>
 
@@ -500,7 +664,11 @@ export const NodeCreationModal = ({
           <button
             type='button'
             className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
-            onClick={() => onConfirm(nodeData)}
+            onClick={() => {
+              if (onConfirm) {
+                onConfirm(nodeData);
+              }
+            }}
           >
             Create Node
           </button>

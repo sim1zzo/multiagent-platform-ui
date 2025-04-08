@@ -96,63 +96,70 @@ export const WorkspaceManager = ({
   );
 
   // Validate connection
-  const isValidConnection = (params) => {
-    const sourceNodeId = params.source;
-    const targetNodeId = params.target;
+  const isValidConnection = useCallback(
+    (params) => {
+      const sourceNodeId = params.source;
+      const targetNodeId = params.target;
 
-    // Find source and target nodes
-    const sourceNode = reactflowNodes.find((node) => node.id === sourceNodeId);
-    const targetNode = reactflowNodes.find((node) => node.id === targetNodeId);
-
-    if (!sourceNode || !targetNode) return false;
-
-    // Model nodes can only connect to agent nodes
-    if (sourceNode.type === 'model' && targetNode.type !== 'agent') {
-      return false;
-    }
-
-    // Memory nodes can only connect to agent nodes
-    if (sourceNode.type === 'memory' && targetNode.type !== 'agent') {
-      return false;
-    }
-
-    // Tool nodes can only connect to agent nodes
-    if (sourceNode.type === 'tool' && targetNode.type !== 'agent') {
-      return false;
-    }
-
-    // Model nodes can only have one outbound connection
-    if (sourceNode.type === 'model') {
-      const existingConnections = reactflowEdges.filter(
-        (edge) => edge.source === sourceNodeId
+      // Find source and target nodes
+      const sourceNode = reactflowNodes.find(
+        (node) => node.id === sourceNodeId
       );
-      if (existingConnections.length > 0) {
+      const targetNode = reactflowNodes.find(
+        (node) => node.id === targetNodeId
+      );
+
+      if (!sourceNode || !targetNode) return false;
+
+      // Model nodes can only connect to agent nodes
+      if (sourceNode.type === 'model' && targetNode.type !== 'agent') {
         return false;
       }
-    }
 
-    // Memory nodes can only have one outbound connection
-    if (sourceNode.type === 'memory') {
-      const existingConnections = reactflowEdges.filter(
-        (edge) => edge.source === sourceNodeId
-      );
-      if (existingConnections.length > 0) {
+      // Memory nodes can only connect to agent nodes
+      if (sourceNode.type === 'memory' && targetNode.type !== 'agent') {
         return false;
       }
-    }
 
-    // Tool nodes can only have one outbound connection
-    if (sourceNode.type === 'tool') {
-      const existingConnections = reactflowEdges.filter(
-        (edge) => edge.source === sourceNodeId
-      );
-      if (existingConnections.length > 0) {
+      // Tool nodes can only connect to agent nodes
+      if (sourceNode.type === 'tool' && targetNode.type !== 'agent') {
         return false;
       }
-    }
 
-    return true;
-  };
+      // Model nodes can only have one outbound connection
+      if (sourceNode.type === 'model') {
+        const existingConnections = reactflowEdges.filter(
+          (edge) => edge.source === sourceNodeId
+        );
+        if (existingConnections.length > 0) {
+          return false;
+        }
+      }
+
+      // Memory nodes can only have one outbound connection
+      if (sourceNode.type === 'memory') {
+        const existingConnections = reactflowEdges.filter(
+          (edge) => edge.source === sourceNodeId
+        );
+        if (existingConnections.length > 0) {
+          return false;
+        }
+      }
+
+      // Tool nodes can only have one outbound connection
+      if (sourceNode.type === 'tool') {
+        const existingConnections = reactflowEdges.filter(
+          (edge) => edge.source === sourceNodeId
+        );
+        if (existingConnections.length > 0) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+    [reactflowNodes, reactflowEdges]
+  );
 
   // Handle new connections
   const onConnect = useCallback(
@@ -164,7 +171,7 @@ export const WorkspaceManager = ({
         // You could trigger the error modal here or provide feedback
       }
     },
-    [onConnectionCreate, reactflowNodes, reactflowEdges]
+    [onConnectionCreate, isValidConnection]
   );
 
   // Handle zoom changes

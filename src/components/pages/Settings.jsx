@@ -119,29 +119,13 @@ const AccountSettings = ({ settings, updateNestedSetting }) => {
                   }
                   className='sr-only'
                 />
+                {/* Fixed toggle styling - removed inline style and used class-based approach */}
                 <div
                   className={`toggle-bg block w-10 h-6 rounded-full ${
                     settings.account.notifications.email
                       ? 'bg-blue-600'
                       : 'bg-gray-200 dark:bg-gray-700'
                   } transition-colors duration-200`}
-                  style={{
-                    position: 'relative',
-                    '::after': {
-                      content: '""',
-                      position: 'absolute',
-                      top: '0.25rem',
-                      left: settings.account.notifications.email
-                        ? 'calc(100% - 1.25rem)'
-                        : '0.25rem',
-                      width: '1rem',
-                      height: '1rem',
-                      borderRadius: '9999px',
-                      backgroundColor: '#fff',
-                      boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.1)',
-                      transition: 'left 0.2s ease-in-out',
-                    },
-                  }}
                 ></div>
               </div>
             </div>

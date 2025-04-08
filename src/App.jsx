@@ -6,13 +6,14 @@ import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { Toolbar } from './components/Toolbar';
 import { NodeCreationModal } from './components/modals/NodeCreationModal';
 import { ErrorModal } from './components/modals/ErrorModal';
+import { CustomNodeCreationModal } from './components/modals/CustomNodeCreationModal';
 
 const App = () => {
   // Active page state - without using context for now
   const [activePage, setActivePage] = useState('workflow');
 
   // Mock user profile for demonstration
-  const [userProfile, setUserProfile] = useState({
+  const [userProfile] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
     role: 'Administrator',
@@ -52,11 +53,6 @@ const App = () => {
       document.body.classList.remove('dark', 'bg-gray-900');
     }
   }, [workspaceConfig.darkMode]);
-
-  // Check if a trigger node exists
-  const hasTriggerNode = () => {
-    return nodes.some((node) => node.type === 'trigger');
-  };
 
   // Initialize node creation - check rules before opening modal
   const handleInitNodeCreate = (nodeType) => {
@@ -482,9 +478,10 @@ const App = () => {
       </div>
 
       {/* Modals */}
-      <NodeCreationModal
+      <CustomNodeCreationModal
         isOpen={nodeCreationModal.isOpen}
         nodeType={nodeCreationModal.nodeType}
+        initialData={{}}
         onConfirm={handleNodeCreate}
         onCancel={handleCancelNodeCreate}
       />
