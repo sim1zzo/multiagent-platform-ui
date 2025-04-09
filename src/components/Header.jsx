@@ -12,7 +12,6 @@ import {
   Sun,
   Bell,
   ChevronDown,
-  FileText,
   Trash,
   Download
 } from 'lucide-react';
@@ -26,7 +25,9 @@ export const Header = ({
   toggleDarkMode,
   navigateTo,
   activePage,
-  userName = "User"
+  userName = "User",
+  userInitials = "", // Add userInitials prop
+  onLogout // Add logout handler
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -281,8 +282,8 @@ export const Header = ({
             className={`flex items-center text-sm font-medium ${darkMode ? 'text-gray-200 hover:text-blue-400' : 'text-gray-700 hover:text-blue-600'}`}
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-              <User className="w-4 h-4 text-blue-600" />
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-2 text-white font-medium">
+              {userInitials || <User className="w-4 h-4" />}
             </div>
             <span className="hidden md:inline">{userName}</span>
             <ChevronDown className="w-4 h-4 ml-1" />
@@ -311,6 +312,7 @@ export const Header = ({
                 </button>
                 <hr className={`my-1 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`} />
                 <button
+                  onClick={onLogout}
                   className={`flex items-center w-full text-left px-4 py-2 text-sm ${darkMode ? 'text-red-400 hover:bg-gray-700' : 'text-red-600 hover:bg-gray-100'}`}
                 >
                   <LogOut className="w-4 h-4 mr-2" />

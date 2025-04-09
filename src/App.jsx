@@ -4,20 +4,47 @@ import { Header } from './components/Header';
 import { WorkspaceManager } from './components/WorkspaceManager';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { Toolbar } from './components/Toolbar';
-// import { NodeCreationModal } from './components/modals/NodeCreationModal';
 import { ErrorModal } from './components/modals/ErrorModal';
 import { CustomNodeCreationModal } from './components/modals/CustomNodeCreationModal';
+import { LoginPage } from './components/pages/LoginPage';
 
 const App = () => {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  
+  // On component mount, check if user is already authenticated (from local storage)
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch (error) {
+        // Handle invalid stored user data
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
+
+  // Login handler
+  const handleLogin = (userData) => {
+    // Save user to state and localStorage
+    setUser(userData);
+    setIsAuthenticated(true);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('user');
+  };
+
   // Active page state - without using context for now
   const [activePage, setActivePage] = useState('workflow');
-
-  // Mock user profile for demonstration
-  const [userProfile] = useState({
-    name: 'Antonio Simone',
-    email: 'si.izzo@reply.it',
-    role: 'Administrator',
-  });
 
   // Workflow state
   const [nodes, setNodes] = useState([]);
@@ -434,6 +461,11 @@ const App = () => {
     }
   };
 
+  // If not authenticated, show login page
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
     <div
       className={`h-screen flex flex-col ${
@@ -449,7 +481,9 @@ const App = () => {
         toggleDarkMode={toggleDarkMode}
         navigateTo={navigateTo}
         activePage={activePage}
-        userName={userProfile.name}
+        userName={user.name}
+        userInitials={user.initials}
+        onLogout={handleLogout}
       />
 
       <div className='flex flex-1 overflow-hidden'>
