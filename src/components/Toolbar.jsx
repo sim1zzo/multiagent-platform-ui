@@ -1,4 +1,4 @@
-// components/Toolbar.jsx
+// components/Toolbar.jsx - Updated with Marketplace button
 import React, { useState } from 'react';
 import {
   Power,
@@ -12,9 +12,11 @@ import {
   Tag,
   Save,
   Upload,
+  Store,
+  BarChart2,
 } from 'lucide-react';
 
-export const Toolbar = ({ onNodeCreate }) => {
+export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
   const [expanded, setExpanded] = useState(true);
 
   const nodeTypes = [
@@ -74,6 +76,25 @@ export const Toolbar = ({ onNodeCreate }) => {
     },
   ];
 
+  // New marketplace button
+  const marketplaceButton = {
+    id: 'marketplace',
+    name: 'Workflow Marketplace',
+    icon: <Store className='w-5 h-5' />,
+    description: 'Browse and import pre-built workflow templates',
+    action: onOpenMarketplace,
+    highlight: true,
+  };
+
+  // Analytics button
+  const analyticsButton = {
+    id: 'analytics',
+    name: 'Memory Analytics',
+    icon: <BarChart2 className='w-5 h-5' />,
+    description: 'View and analyze agent memory',
+    highlight: false,
+  };
+
   return (
     <div
       className={`h-full border-r border-gray-200 bg-white transition-all duration-300 ${
@@ -93,6 +114,32 @@ export const Toolbar = ({ onNodeCreate }) => {
       </div>
 
       <div className='p-2'>
+        {/* Marketplace Feature (New) */}
+        <div className='mb-6'>
+          <button
+            className={`flex items-center w-full p-2 rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors ${
+              expanded ? 'justify-start' : 'justify-center'
+            }`}
+            onClick={marketplaceButton.action}
+            title={!expanded ? marketplaceButton.name : undefined}
+          >
+            <div className='text-white'>{marketplaceButton.icon}</div>
+
+            {expanded && (
+              <div className='ml-3 text-left'>
+                <div className='text-sm font-medium text-white'>
+                  {marketplaceButton.name}
+                </div>
+                {marketplaceButton.description && (
+                  <div className='text-xs text-blue-100'>
+                    {marketplaceButton.description}
+                  </div>
+                )}
+              </div>
+            )}
+          </button>
+        </div>
+
         <div className='mb-6'>
           <h3
             className={`text-sm font-medium text-gray-700 mb-3 ${
@@ -126,6 +173,41 @@ export const Toolbar = ({ onNodeCreate }) => {
                 )}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Advanced Tools Section with Memory Analytics */}
+        <div className='mb-6'>
+          <h3
+            className={`text-sm font-medium text-gray-700 mb-3 ${
+              expanded ? 'block' : 'hidden'
+            }`}
+          >
+            Advanced Tools
+          </h3>
+
+          <div className='space-y-2'>
+            <button
+              className={`flex items-center w-full p-2 rounded-md hover:bg-gray-100 transition-colors ${
+                expanded ? 'justify-start' : 'justify-center'
+              }`}
+              title={!expanded ? analyticsButton.name : undefined}
+            >
+              <div className='text-purple-600'>{analyticsButton.icon}</div>
+
+              {expanded && (
+                <div className='ml-3 text-left'>
+                  <div className='text-sm font-medium text-gray-700'>
+                    {analyticsButton.name}
+                  </div>
+                  {analyticsButton.description && (
+                    <div className='text-xs text-gray-500'>
+                      {analyticsButton.description}
+                    </div>
+                  )}
+                </div>
+              )}
+            </button>
           </div>
         </div>
 

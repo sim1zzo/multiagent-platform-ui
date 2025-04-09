@@ -1,5 +1,5 @@
-// components/WorkspaceManager.jsx
-import React, { useCallback } from 'react';
+// components/WorkspaceManager.jsx - Updated with Memory Visualization
+import React, { useCallback, useState } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -21,6 +21,7 @@ import {
 import { ConnectionLine } from './edges/ConnectionLine';
 import { NavigationPanel } from './NavigationPanel';
 import { ChatPanel } from './ChatPanel';
+import { AgentMemoryVisualization } from './visualization/AgentMemoryVisualization';
 
 // Register custom node types
 const nodeTypes = {
@@ -52,6 +53,8 @@ export const WorkspaceManager = ({
 }) => {
   const [reactflowNodes, setNodes, onNodesChange] = useNodesState([]);
   const [reactflowEdges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [memoryVisualizationOpen, setMemoryVisualizationOpen] = useState(false);
+  const [selectedAgentForMemory, setSelectedAgentForMemory] = useState(null);
 
   // Update nodes when they change
   React.useEffect(() => {
@@ -65,6 +68,13 @@ export const WorkspaceManager = ({
           isSelected: node.id === selectedNode,
           onSelect: () => onNodeSelect(node.id),
           onDelete: () => onNodeDelete(node.id),
+          onViewMemory:
+            node.type === 'agent'
+              ? () => {
+                  setSelectedAgentForMemory(node.id);
+                  setMemoryVisualizationOpen(true);
+                }
+              : undefined,
         },
       }))
     );
@@ -187,6 +197,12 @@ export const WorkspaceManager = ({
     [onWorkspaceConfig]
   );
 
+  // Close memory visualization
+  const closeMemoryVisualization = useCallback(() => {
+    setMemoryVisualizationOpen(false);
+    setSelectedAgentForMemory(null);
+  }, []);
+
   return (
     <div className='flex-1 h-full relative'>
       <ReactFlow
@@ -243,6 +259,14 @@ export const WorkspaceManager = ({
 
       {/* Chat Panel Component */}
       <ChatPanel />
+
+      {/* Memory Visualization Modal */}
+      {memoryVisualizationOpen && selectedAgentForMemory && (
+        <AgentMemoryVisualization
+          agentId={selectedAgentForMemory}
+          onClose={closeMemoryVisualization}
+        />
+      )}
     </div>
   );
 };

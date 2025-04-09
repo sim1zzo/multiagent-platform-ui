@@ -1,15 +1,19 @@
-// App.jsx - Main container component
+// App.jsx - Updated to use NotificationModal for success messages
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { WorkspaceManager } from './components/WorkspaceManager';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { Toolbar } from './components/Toolbar';
 import { ErrorModal } from './components/modals/ErrorModal';
+import { NotificationModal } from './components/modals/NotificationModal'; // Import new component
 import { CustomNodeCreationModal } from './components/modals/CustomNodeCreationModal';
 import { LoginPage } from './components/pages/LoginPage';
 import { Settings } from './components/pages/Settings';
 import { Profile } from './components/pages/Profile';
 import { AppProvider, useApp } from './components/context/AppContext';
+import { WorkflowMarketplace } from './components/marketplace/WorkflowMarketplace';
+import { AgentMemoryVisualization } from './components/visualization/AgentMemoryVisualization';
+import { useWorkflowMarketplace } from './hooks/useWorkflowMarketplace';
 
 const MainApp = () => {
   // Get app context
@@ -18,7 +22,15 @@ const MainApp = () => {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  
+
+  // Use the marketplace hook
+  const {
+    isMarketplaceOpen,
+    openMarketplace,
+    closeMarketplace,
+    importTemplate,
+  } = useWorkflowMarketplace();
+
   // On component mount, check if user is already authenticated (from local storage)
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
@@ -54,6 +66,10 @@ const MainApp = () => {
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
 
+  // Memory visualization state
+  const [memoryVisualizationOpen, setMemoryVisualizationOpen] = useState(false);
+  const [selectedAgentForMemory, setSelectedAgentForMemory] = useState(null);
+
   // UI state
   const [workspaceConfig, setWorkspaceConfig] = useState({
     zoom: 1,
@@ -70,9 +86,16 @@ const MainApp = () => {
     nodeType: null,
   });
 
+  // Separate modals for error and notification/success
   const [errorModal, setErrorModal] = useState({
     isOpen: false,
     message: '',
+  });
+
+  const [notificationModal, setNotificationModal] = useState({
+    isOpen: false,
+    message: '',
+    type: 'info', // can be 'success', 'info', 'warning'
   });
 
   // Apply dark mode classes to body
@@ -86,9 +109,9 @@ const MainApp = () => {
 
   // Update darkMode when theme preference changes
   useEffect(() => {
-    setWorkspaceConfig(prev => ({
+    setWorkspaceConfig((prev) => ({
       ...prev,
-      darkMode: settings.preferences.theme === 'dark'
+      darkMode: settings.preferences.theme === 'dark',
     }));
   }, [settings.preferences.theme]);
 
@@ -166,10 +189,15 @@ const MainApp = () => {
       const memoryNode = {
         id: `memory-${Date.now()}`,
         type: 'memory',
-        name: `${(newNode.memory || settings.ai?.defaultMemoryType || 'chat-history')
+        name: `${(
+          newNode.memory ||
+          settings.ai?.defaultMemoryType ||
+          'chat-history'
+        )
           .replace(/-/g, ' ')
           .replace(/\b\w/g, (l) => l.toUpperCase())} Memory`,
-        memoryType: newNode.memory || settings.ai?.defaultMemoryType || 'chat-history',
+        memoryType:
+          newNode.memory || settings.ai?.defaultMemoryType || 'chat-history',
         position: {
           x: newNode.position.x,
           y: newNode.position.y + 150,
@@ -192,9 +220,10 @@ const MainApp = () => {
       newEdges.push(memoryEdge);
 
       // Use default tools from settings if none are provided
-      const toolsToAdd = newNode.tools && newNode.tools.length > 0 
-        ? newNode.tools 
-        : settings.ai?.defaultTools || ['web-search', 'code-interpreter'];
+      const toolsToAdd =
+        newNode.tools && newNode.tools.length > 0
+          ? newNode.tools
+          : settings.ai?.defaultTools || ['web-search', 'code-interpreter'];
 
       // Create tool nodes if any tools are selected
       if (toolsToAdd.length > 0) {
@@ -271,7 +300,11 @@ const MainApp = () => {
 
     // Optionally confirm deletion if enabled in settings
     if (settings.preferences.confirmNodeDeletion) {
-      if (!window.confirm(`Are you sure you want to delete the "${nodeToDelete.name}" node?`)) {
+      if (
+        !window.confirm(
+          `Are you sure you want to delete the "${nodeToDelete.name}" node?`
+        )
+      ) {
         return;
       }
     }
@@ -420,6 +453,13 @@ const MainApp = () => {
     // Cleanup
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    // Show success notification
+    setNotificationModal({
+      isOpen: true,
+      message: 'Workflow exported successfully',
+      type: 'success',
+    });
   };
 
   // Reset workspace
@@ -432,6 +472,13 @@ const MainApp = () => {
       setNodes([]);
       setEdges([]);
       setSelectedNode(null);
+
+      // Show success notification
+      setNotificationModal({
+        isOpen: true,
+        message: 'Workspace has been reset',
+        type: 'info',
+      });
     }
   };
 
@@ -446,8 +493,12 @@ const MainApp = () => {
     const workspaceJson = JSON.stringify(workspace);
     localStorage.setItem('workflow-workspace', workspaceJson);
 
-    // In a real application, you would likely save to a server
-    console.log('Workspace saved', workspace);
+    // Show success notification
+    setNotificationModal({
+      isOpen: true,
+      message: 'Workspace saved successfully',
+      type: 'success',
+    });
   };
 
   // Load workspace
@@ -461,6 +512,13 @@ const MainApp = () => {
         setEdges(workspace.edges || []);
         setWorkspaceConfig(workspace.config || workspaceConfig);
         setSelectedNode(null);
+
+        // Show success notification
+        setNotificationModal({
+          isOpen: true,
+          message: 'Workspace loaded successfully',
+          type: 'success',
+        });
       } catch (error) {
         console.error('Failed to load workspace', error);
         setErrorModal({
@@ -468,7 +526,43 @@ const MainApp = () => {
           message: 'Failed to load workspace: ' + error.message,
         });
       }
+    } else {
+      setErrorModal({
+        isOpen: true,
+        message: 'No saved workspace found',
+      });
     }
+  };
+
+  // Handle importing workflow from the marketplace
+  const handleImportWorkflow = (workflowData) => {
+    if (!workflowData) return;
+
+    // Clear existing workspace first
+    setNodes(workflowData.nodes || []);
+    setEdges(workflowData.edges || []);
+    setSelectedNode(null);
+
+    // Show success message with notification modal instead of error modal
+    setNotificationModal({
+      isOpen: true,
+      message: `Successfully imported workflow "${
+        workflowData.importedFrom?.templateName || 'Template'
+      }"`,
+      type: 'success',
+    });
+  };
+
+  // Open the agent memory visualization
+  const handleOpenMemoryVisualization = (agentId) => {
+    setSelectedAgentForMemory(agentId);
+    setMemoryVisualizationOpen(true);
+  };
+
+  // Close the agent memory visualization
+  const handleCloseMemoryVisualization = () => {
+    setMemoryVisualizationOpen(false);
+    setSelectedAgentForMemory(null);
   };
 
   // Auto-save functionality
@@ -482,7 +576,12 @@ const MainApp = () => {
 
       return () => clearInterval(intervalId);
     }
-  }, [nodes, edges, settings.preferences.autoSave, settings.preferences.saveInterval]);
+  }, [
+    nodes,
+    edges,
+    settings.preferences.autoSave,
+    settings.preferences.saveInterval,
+  ]);
 
   // If not authenticated, show login page
   if (!isAuthenticated) {
@@ -500,7 +599,10 @@ const MainApp = () => {
       default:
         return (
           <div className='flex flex-1 overflow-hidden'>
-            <Toolbar onNodeCreate={handleInitNodeCreate} />
+            <Toolbar
+              onNodeCreate={handleInitNodeCreate}
+              onOpenMarketplace={openMarketplace}
+            />
 
             <WorkspaceManager
               nodes={nodes}
@@ -513,6 +615,7 @@ const MainApp = () => {
               onConnectionCreate={handleConnectionCreate}
               onConnectionDelete={handleConnectionDelete}
               onWorkspaceConfig={handleWorkspaceConfig}
+              onOpenMemoryVisualization={handleOpenMemoryVisualization}
             />
 
             {selectedNode && (
@@ -538,6 +641,7 @@ const MainApp = () => {
         onLoad={handleLoadWorkspace}
         onExport={handleExportWorkflow}
         onReset={handleResetWorkflow}
+        onOpenMarketplace={openMarketplace}
         darkMode={workspaceConfig.darkMode}
         toggleDarkMode={toggleDarkMode}
         navigateTo={navigateTo}
@@ -558,11 +662,38 @@ const MainApp = () => {
         onCancel={handleCancelNodeCreate}
       />
 
+      {/* Error Modal - only for errors */}
       <ErrorModal
         isOpen={errorModal.isOpen}
         message={errorModal.message}
         onClose={() => setErrorModal({ isOpen: false, message: '' })}
       />
+
+      {/* Notification Modal - for success, info, and warnings */}
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        message={notificationModal.message}
+        type={notificationModal.type}
+        onClose={() =>
+          setNotificationModal({ isOpen: false, message: '', type: 'info' })
+        }
+      />
+
+      {/* Marketplace Modal */}
+      {isMarketplaceOpen && (
+        <WorkflowMarketplace
+          onImportWorkflow={handleImportWorkflow}
+          onClose={closeMarketplace}
+        />
+      )}
+
+      {/* Memory Visualization Modal */}
+      {memoryVisualizationOpen && selectedAgentForMemory && (
+        <AgentMemoryVisualization
+          agentId={selectedAgentForMemory}
+          onClose={handleCloseMemoryVisualization}
+        />
+      )}
     </div>
   );
 };
