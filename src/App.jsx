@@ -7,8 +7,14 @@ import { Toolbar } from './components/Toolbar';
 import { ErrorModal } from './components/modals/ErrorModal';
 import { CustomNodeCreationModal } from './components/modals/CustomNodeCreationModal';
 import { LoginPage } from './components/pages/LoginPage';
+import { Settings } from './components/pages/Settings';
+import { Profile } from './components/pages/Profile';
+import { AppProvider, useApp } from './components/context/AppContext';
 
-const App = () => {
+const MainApp = () => {
+  // Get app context
+  const { activePage, navigateTo, settings } = useApp();
+
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -43,9 +49,6 @@ const App = () => {
     localStorage.removeItem('user');
   };
 
-  // Active page state - without using context for now
-  const [activePage, setActivePage] = useState('workflow');
-
   // Workflow state
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -58,7 +61,7 @@ const App = () => {
     panY: 0,
     showGrid: true,
     snapToGrid: true,
-    darkMode: false,
+    darkMode: settings.preferences.theme === 'dark',
   });
 
   // Modal state
@@ -80,6 +83,14 @@ const App = () => {
       document.body.classList.remove('dark', 'bg-gray-900');
     }
   }, [workspaceConfig.darkMode]);
+
+  // Update darkMode when theme preference changes
+  useEffect(() => {
+    setWorkspaceConfig(prev => ({
+      ...prev,
+      darkMode: settings.preferences.theme === 'dark'
+    }));
+  }, [settings.preferences.theme]);
 
   // Initialize node creation - check rules before opening modal
   const handleInitNodeCreate = (nodeType) => {
@@ -134,8 +145,8 @@ const App = () => {
       const modelNode = {
         id: `model-${Date.now()}`,
         type: 'model',
-        name: `${newNode.model || 'gpt-4'} Model`,
-        modelType: newNode.model || 'gpt-4',
+        name: `${newNode.model || settings.ai?.defaultModel || 'gpt-4'} Model`,
+        modelType: newNode.model || settings.ai?.defaultModel || 'gpt-4',
         position: {
           x: newNode.position.x - 200,
           y: newNode.position.y + 150,
@@ -155,10 +166,10 @@ const App = () => {
       const memoryNode = {
         id: `memory-${Date.now()}`,
         type: 'memory',
-        name: `${(newNode.memory || 'chat-history')
+        name: `${(newNode.memory || settings.ai?.defaultMemoryType || 'chat-history')
           .replace(/-/g, ' ')
           .replace(/\b\w/g, (l) => l.toUpperCase())} Memory`,
-        memoryType: newNode.memory || 'chat-history',
+        memoryType: newNode.memory || settings.ai?.defaultMemoryType || 'chat-history',
         position: {
           x: newNode.position.x,
           y: newNode.position.y + 150,
@@ -180,15 +191,20 @@ const App = () => {
       newEdges.push(modelEdge);
       newEdges.push(memoryEdge);
 
+      // Use default tools from settings if none are provided
+      const toolsToAdd = newNode.tools && newNode.tools.length > 0 
+        ? newNode.tools 
+        : settings.ai?.defaultTools || ['web-search', 'code-interpreter'];
+
       // Create tool nodes if any tools are selected
-      if (newNode.tools && newNode.tools.length > 0) {
+      if (toolsToAdd.length > 0) {
         const toolsPerRow = 3;
         const horizontalSpacing = 170;
         const verticalSpacing = 120;
         const startX = newNode.position.x + 200;
         const startY = newNode.position.y + 150;
 
-        newNode.tools.forEach((toolId, index) => {
+        toolsToAdd.forEach((toolId, index) => {
           const row = Math.floor(index / toolsPerRow);
           const col = index % toolsPerRow;
 
@@ -252,6 +268,13 @@ const App = () => {
     const nodeToDelete = nodes.find((node) => node.id === nodeId);
 
     if (!nodeToDelete) return;
+
+    // Optionally confirm deletion if enabled in settings
+    if (settings.preferences.confirmNodeDeletion) {
+      if (!window.confirm(`Are you sure you want to delete the "${nodeToDelete.name}" node?`)) {
+        return;
+      }
+    }
 
     // For agent nodes, also delete connected model, memory, and tool nodes
     let nodesToDelete = [nodeId];
@@ -448,23 +471,61 @@ const App = () => {
     }
   };
 
-  // Navigation function for the header
-  const navigateTo = (page) => {
-    setActivePage(page);
-    // For simplicity, we'll just redirect back to workflow for now
-    if (page !== 'workflow') {
-      alert(
-        `Navigation to ${page} page - This would show the ${page} interface if fully implemented`
-      );
-      // Redirect back to workflow for demo purposes
-      setActivePage('workflow');
+  // Auto-save functionality
+  useEffect(() => {
+    // Set up auto-save if enabled
+    if (settings.preferences.autoSave && nodes.length > 0) {
+      const saveInterval = settings.preferences.saveInterval || 5;
+      const intervalId = setInterval(() => {
+        handleSaveWorkspace();
+      }, saveInterval * 60 * 1000); // Convert minutes to milliseconds
+
+      return () => clearInterval(intervalId);
     }
-  };
+  }, [nodes, edges, settings.preferences.autoSave, settings.preferences.saveInterval]);
 
   // If not authenticated, show login page
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
   }
+
+  // Render the appropriate page based on activePage state
+  const renderPage = () => {
+    switch (activePage) {
+      case 'settings':
+        return <Settings />;
+      case 'profile':
+        return <Profile />;
+      case 'workflow':
+      default:
+        return (
+          <div className='flex flex-1 overflow-hidden'>
+            <Toolbar onNodeCreate={handleInitNodeCreate} />
+
+            <WorkspaceManager
+              nodes={nodes}
+              edges={edges}
+              selectedNode={selectedNode}
+              workspaceConfig={workspaceConfig}
+              onNodeSelect={handleNodeSelect}
+              onNodeUpdate={handleNodeUpdate}
+              onNodeDelete={handleNodeDelete}
+              onConnectionCreate={handleConnectionCreate}
+              onConnectionDelete={handleConnectionDelete}
+              onWorkspaceConfig={handleWorkspaceConfig}
+            />
+
+            {selectedNode && (
+              <ConfigurationPanel
+                node={nodes.find((n) => n.id === selectedNode)}
+                onUpdate={(updates) => handleNodeUpdate(selectedNode, updates)}
+                onClose={() => setSelectedNode(null)}
+              />
+            )}
+          </div>
+        );
+    }
+  };
 
   return (
     <div
@@ -486,30 +547,7 @@ const App = () => {
         onLogout={handleLogout}
       />
 
-      <div className='flex flex-1 overflow-hidden'>
-        <Toolbar onNodeCreate={handleInitNodeCreate} />
-
-        <WorkspaceManager
-          nodes={nodes}
-          edges={edges}
-          selectedNode={selectedNode}
-          workspaceConfig={workspaceConfig}
-          onNodeSelect={handleNodeSelect}
-          onNodeUpdate={handleNodeUpdate}
-          onNodeDelete={handleNodeDelete}
-          onConnectionCreate={handleConnectionCreate}
-          onConnectionDelete={handleConnectionDelete}
-          onWorkspaceConfig={handleWorkspaceConfig}
-        />
-
-        {selectedNode && (
-          <ConfigurationPanel
-            node={nodes.find((n) => n.id === selectedNode)}
-            onUpdate={(updates) => handleNodeUpdate(selectedNode, updates)}
-            onClose={() => setSelectedNode(null)}
-          />
-        )}
-      </div>
+      {renderPage()}
 
       {/* Modals */}
       <CustomNodeCreationModal
@@ -526,6 +564,15 @@ const App = () => {
         onClose={() => setErrorModal({ isOpen: false, message: '' })}
       />
     </div>
+  );
+};
+
+// Wrap the main app with the AppProvider
+const App = () => {
+  return (
+    <AppProvider>
+      <MainApp />
+    </AppProvider>
   );
 };
 

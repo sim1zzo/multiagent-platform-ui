@@ -52,7 +52,45 @@ const initialSettings = {
     gridSize: 20,
     snapToGrid: true,
     showMinimap: true,
+    density: 'comfortable',
+    fontSize: 'medium',
+    confirmNodeDeletion: true,
+    maxUndoSteps: 20,
   },
+  ai: {
+    defaultModel: 'gpt-4',
+    temperature: 0.7,
+    maxTokens: 2000,
+    defaultMemoryType: 'chat-history',
+    apiLimits: false,
+    rateLimit: 100,
+    defaultTools: ['web-search', 'code-interpreter']
+  },
+  integrations: {
+    slack: { enabled: false, webhook: '' },
+    github: { enabled: false, token: '' },
+    jira: { enabled: false, domain: '', apiKey: '' },
+    aws: { enabled: false, accessKey: '', secretKey: '' },
+    openai: { enabled: true, apiKey: '••••••••••••••••••••••' }
+  },
+  notifications: {
+    channels: {
+      slack: false,
+      teams: false
+    },
+    events: {
+      workflow_completed: true,
+      workflow_error: true,
+      agent_created: false,
+      system_updates: true
+    }
+  },
+  security: {
+    sessionTimeout: 30,
+    ipRestrictions: false,
+    apiAccessControl: false,
+    auditLogging: true
+  }
 };
 
 export const AppProvider = ({ children }) => {
@@ -102,21 +140,38 @@ export const AppProvider = ({ children }) => {
 
   // Update specific nested setting
   const updateNestedSetting = (category, section, key, value) => {
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [category]: {
-        ...prevSettings[category],
-        [section]: {
-          ...prevSettings[category][section],
-          [key]: value,
+    setSettings((prevSettings) => {
+      // Make sure that section exists
+      const currentSectionValues = prevSettings[category]?.[section] || {};
+      
+      return {
+        ...prevSettings,
+        [category]: {
+          ...prevSettings[category],
+          [section]: {
+            ...currentSectionValues,
+            [key]: value,
+          },
         },
-      },
-    }));
+      };
+    });
   };
 
   // Navigate to a specific page
   const navigateTo = (page) => {
     setActivePage(page);
+  };
+
+  // Reset all settings to default
+  const resetSettings = (category = null) => {
+    if (category) {
+      setSettings((prevSettings) => ({
+        ...prevSettings,
+        [category]: initialSettings[category],
+      }));
+    } else {
+      setSettings(initialSettings);
+    }
   };
 
   // Context value
@@ -128,6 +183,7 @@ export const AppProvider = ({ children }) => {
     updateUserProfile,
     updateSettings,
     updateNestedSetting,
+    resetSettings
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
