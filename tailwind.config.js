@@ -33,7 +33,7 @@ module.exports = {
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-in-out',
-        'slide-up': 'slideUp 0.2s ease-out',
+        'slide-up': 'slideUp 0.3s ease-out',
       },
       keyframes: {
         fadeIn: {

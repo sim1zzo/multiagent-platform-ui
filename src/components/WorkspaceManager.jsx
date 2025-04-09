@@ -20,6 +20,7 @@ import {
 } from './nodes/CustomNodes';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { NavigationPanel } from './NavigationPanel';
+import { ChatPanel } from './ChatPanel';
 
 // Register custom node types
 const nodeTypes = {
@@ -239,6 +240,9 @@ export const WorkspaceManager = ({
         config={workspaceConfig}
         onConfigChange={onWorkspaceConfig}
       />
+
+      {/* Chat Panel Component */}
+      <ChatPanel />
     </div>
   );
 };

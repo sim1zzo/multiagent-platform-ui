@@ -6,8 +6,8 @@ const AppContext = createContext();
 
 // Initial user profile
 const initialUserProfile = {
-  name: 'John Doe',
-  email: 'john.doe@example.com',
+  name: 'Simone Izzo',
+  email: 'si.izzo@reply.it',
   role: 'Administrator',
   avatar: null, // Will be managed as URL or null
   joinDate: '2023-01-15',
