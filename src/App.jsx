@@ -14,6 +14,9 @@ import { AppProvider, useApp } from './components/context/AppContext';
 import { WorkflowMarketplace } from './components/marketplace/WorkflowMarketplace';
 import { AgentMemoryVisualization } from './components/visualization/AgentMemoryVisualization';
 import { useWorkflowMarketplace } from './hooks/useWorkflowMarketplace';
+import { Dashboard } from './components/pages/Dashboard';
+import { Analytics } from './components/pages/Analytics';
+import { Simulations } from './components/pages/Simulations';
 
 const MainApp = () => {
   // Get app context
@@ -591,6 +594,12 @@ const MainApp = () => {
   // Render the appropriate page based on activePage state
   const renderPage = () => {
     switch (activePage) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'analytics':
+        return <Analytics />;
+      case 'simulations':
+        return <Simulations />;
       case 'settings':
         return <Settings />;
       case 'profile':
