@@ -1,11 +1,11 @@
-// App.jsx - Updated to use NotificationModal for success messages
+// App.jsx - Import section update
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { WorkspaceManager } from './components/WorkspaceManager';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { Toolbar } from './components/Toolbar';
 import { ErrorModal } from './components/modals/ErrorModal';
-import { NotificationModal } from './components/modals/NotificationModal'; // Import new component
+import { NotificationModal } from './components/modals/NotificationModal';
 import { CustomNodeCreationModal } from './components/modals/CustomNodeCreationModal';
 import { LoginPage } from './components/pages/LoginPage';
 import { Settings } from './components/pages/Settings';
@@ -17,6 +17,7 @@ import { useWorkflowMarketplace } from './hooks/useWorkflowMarketplace';
 import { Dashboard } from './components/pages/Dashboard';
 import { Analytics } from './components/pages/Analytics';
 import { Simulations } from './components/pages/Simulations';
+import ConversationFlowVisualizer from './components/visualization/ConversationFlowVisualizer';
 
 const MainApp = () => {
   // Get app context
