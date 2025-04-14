@@ -23,11 +23,32 @@ export const CustomNodeCreationModal = ({
     });
   }, [initialData, nodeType]);
 
-  // Custom state updaters that don't rely on DOM events
+  // Safe update methods that don't rely on DOM direct access
   const updateName = (value) => {
     setNodeData((prev) => ({
       ...prev,
       name: value,
+    }));
+  };
+
+  const updateCondition = (value) => {
+    setNodeData((prev) => ({
+      ...prev,
+      condition: value,
+    }));
+  };
+
+  const updateTrueLabel = (value) => {
+    setNodeData((prev) => ({
+      ...prev,
+      trueLabel: value,
+    }));
+  };
+
+  const updateFalseLabel = (value) => {
+    setNodeData((prev) => ({
+      ...prev,
+      falseLabel: value,
     }));
   };
 
@@ -86,7 +107,7 @@ export const CustomNodeCreationModal = ({
     return (
       <>
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Trigger Type
           </div>
           <div className='border border-gray-300 rounded-md p-0'>
@@ -109,20 +130,20 @@ export const CustomNodeCreationModal = ({
         </div>
 
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Payload Schema
           </div>
-          <div
-            className='w-full p-2 min-h-[100px] border border-gray-300 rounded-md text-gray-800'
-            contentEditable
-            suppressContentEditableWarning
-            onInput={(e) =>
+          <textarea
+            className='w-full p-2 border border-gray-300 rounded-md min-h-[100px] text-gray-800'
+            value={nodeData.payload || ''}
+            onChange={(e) =>
               setNodeData((prev) => ({
                 ...prev,
-                payload: e.currentTarget.textContent,
+                payload: e.target.value,
               }))
             }
-          ></div>
+            placeholder='Enter payload schema'
+          />
         </div>
       </>
     );
@@ -155,7 +176,7 @@ export const CustomNodeCreationModal = ({
     return (
       <>
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             AI Model
           </div>
           <div className='border border-gray-300 rounded-md'>
@@ -179,7 +200,7 @@ export const CustomNodeCreationModal = ({
         </div>
 
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Memory Type
           </div>
           <div className='border border-gray-300 rounded-md'>
@@ -203,7 +224,7 @@ export const CustomNodeCreationModal = ({
         </div>
 
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Tools
           </div>
           <div className='border border-gray-300 rounded-md p-2 space-y-2'>
@@ -254,59 +275,40 @@ export const CustomNodeCreationModal = ({
     return (
       <>
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Condition Expression
           </div>
-          <div
-            className='w-full p-2 min-h-[100px] border border-gray-300 rounded-md text-gray-800'
-            contentEditable
-            suppressContentEditableWarning
-            onInput={(e) =>
-              setNodeData((prev) => ({
-                ...prev,
-                condition: e.currentTarget.textContent,
-              }))
-            }
-          ></div>
+          <textarea
+            className='w-full p-2 border border-gray-300 rounded-md min-h-[100px] text-gray-800'
+            value={nodeData.condition || ''}
+            onChange={(e) => updateCondition(e.target.value)}
+            placeholder="e.g., {{response.sentiment}} === 'positive'"
+          />
         </div>
 
         <div className='grid grid-cols-2 gap-4'>
           <div>
-            <div className='block text-sm font-medium text-gray-700 mb-1'>
+            <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
               True Path Label
             </div>
-            <div
+            <input
+              type='text'
               className='w-full p-2 border border-gray-300 rounded-md text-gray-800'
-              contentEditable
-              suppressContentEditableWarning
-              onInput={(e) =>
-                setNodeData((prev) => ({
-                  ...prev,
-                  trueLabel: e.currentTarget.textContent,
-                }))
-              }
-            >
-              {nodeData.trueLabel || 'True'}
-            </div>
+              value={nodeData.trueLabel || 'True'}
+              onChange={(e) => updateTrueLabel(e.target.value)}
+            />
           </div>
 
           <div>
-            <div className='block text-sm font-medium text-gray-700 mb-1'>
+            <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
               False Path Label
             </div>
-            <div
+            <input
+              type='text'
               className='w-full p-2 border border-gray-300 rounded-md text-gray-800'
-              contentEditable
-              suppressContentEditableWarning
-              onInput={(e) =>
-                setNodeData((prev) => ({
-                  ...prev,
-                  falseLabel: e.currentTarget.textContent,
-                }))
-              }
-            >
-              {nodeData.falseLabel || 'False'}
-            </div>
+              value={nodeData.falseLabel || 'False'}
+              onChange={(e) => updateFalseLabel(e.target.value)}
+            />
           </div>
         </div>
       </>
@@ -325,7 +327,7 @@ export const CustomNodeCreationModal = ({
     return (
       <>
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Action Type
           </div>
           <div className='border border-gray-300 rounded-md'>
@@ -348,20 +350,20 @@ export const CustomNodeCreationModal = ({
         </div>
 
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 mb-1'>
+          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Configuration
           </div>
-          <div
-            className='w-full p-2 min-h-[100px] border border-gray-300 rounded-md text-gray-800'
-            contentEditable
-            suppressContentEditableWarning
-            onInput={(e) =>
+          <textarea
+            className='w-full p-2 border border-gray-300 rounded-md min-h-[100px] text-gray-800'
+            value={nodeData.config || ''}
+            onChange={(e) =>
               setNodeData((prev) => ({
                 ...prev,
-                config: e.currentTarget.textContent,
+                config: e.target.value,
               }))
             }
-          ></div>
+            placeholder='Add configuration details...'
+          />
         </div>
       </>
     );
@@ -371,8 +373,8 @@ export const CustomNodeCreationModal = ({
 
   return (
     <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-      <div className='bg-white rounded-lg shadow-lg w-full max-w-md'>
-        <div className='flex items-center justify-between p-4 border-b border-gray-200'>
+      <div className='bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md'>
+        <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
           <h2 className='text-lg font-medium'>
             Configure{' '}
             {nodeType && nodeType.charAt(0).toUpperCase() + nodeType.slice(1)}{' '}
@@ -388,23 +390,22 @@ export const CustomNodeCreationModal = ({
 
         <div className='p-4'>
           <div className='mb-4'>
-            <div className='block text-sm font-medium text-gray-700 mb-1'>
+            <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
               Node Name
             </div>
-            <div
+            <input
+              type='text'
               className='w-full p-2 border border-gray-300 rounded-md text-gray-800'
-              contentEditable
-              suppressContentEditableWarning
-              onInput={(e) => updateName(e.currentTarget.textContent)}
-            >
-              {nodeData.name}
-            </div>
+              value={nodeData.name || ''}
+              onChange={(e) => updateName(e.target.value)}
+              placeholder='Enter node name...'
+            />
           </div>
 
           {renderForm()}
         </div>
 
-        <div className='flex justify-end p-4 border-t border-gray-200'>
+        <div className='flex justify-end p-4 border-t border-gray-200 dark:border-gray-700 space-x-3'>
           <button
             type='button'
             className='px-4 py-2 mr-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50'
