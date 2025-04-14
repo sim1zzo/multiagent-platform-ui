@@ -89,6 +89,78 @@ export const WorkflowTemplateDetails = ({ template, onBack, onImport }) => {
     }
   };
 
+  // Get template preview image based on template type
+  const getTemplateImage = () => {
+    const templateType = template.name.toLowerCase();
+
+    if (
+      templateType.includes('customer support') ||
+      templateType.includes('chatbot')
+    ) {
+      return '/images/templates/customer-support-preview.png';
+    } else if (
+      templateType.includes('data') ||
+      templateType.includes('analysis')
+    ) {
+      return '/images/templates/data-analysis-preview.png';
+    } else if (
+      templateType.includes('document') ||
+      templateType.includes('processing')
+    ) {
+      return '/images/templates/document-processing-preview.png';
+    } else if (
+      templateType.includes('content') ||
+      templateType.includes('moderation')
+    ) {
+      return '/images/templates/content-moderation-preview.png';
+    } else if (
+      templateType.includes('lead') ||
+      templateType.includes('sales')
+    ) {
+      return '/images/templates/sales-lead-preview.png';
+    } else if (templateType.includes('recruit')) {
+      return '/images/templates/recruitment-preview.png';
+    } else {
+      return '/images/templates/default-workflow-preview.png';
+    }
+  };
+
+  // Get workflow diagram image based on template type
+  const getWorkflowDiagramImage = () => {
+    const templateType = template.name.toLowerCase();
+
+    if (
+      templateType.includes('customer support') ||
+      templateType.includes('chatbot')
+    ) {
+      return '/images/templates/customer-support-diagram.png';
+    } else if (
+      templateType.includes('data') ||
+      templateType.includes('analysis')
+    ) {
+      return '/images/templates/data-analysis-diagram.png';
+    } else if (
+      templateType.includes('document') ||
+      templateType.includes('processing')
+    ) {
+      return '/images/templates/document-processing-diagram.png';
+    } else if (
+      templateType.includes('content') ||
+      templateType.includes('moderation')
+    ) {
+      return '/images/templates/content-moderation-diagram.png';
+    } else if (
+      templateType.includes('lead') ||
+      templateType.includes('sales')
+    ) {
+      return '/images/templates/sales-lead-diagram.png';
+    } else if (templateType.includes('recruit')) {
+      return '/images/templates/recruitment-diagram.png';
+    } else {
+      return '/images/templates/default-workflow-diagram.png';
+    }
+  };
+
   const complexityInfo = getComplexityInfo(template.complexity);
 
   return (
@@ -122,9 +194,21 @@ export const WorkflowTemplateDetails = ({ template, onBack, onImport }) => {
           <div className='flex flex-col md:flex-row p-6'>
             {/* Left column - Template info */}
             <div className='md:w-1/3 pr-6'>
-              <div className='h-56 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4 flex items-center justify-center'>
-                {/* This would be an actual image in a real implementation */}
-                <div className='text-4xl text-gray-500 dark:text-gray-400'>
+              <div className='h-56 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4 flex items-center justify-center overflow-hidden'>
+                {/* Template preview image */}
+                <img
+                  src={getTemplateImage()}
+                  alt={template.name}
+                  className='w-full h-full object-cover'
+                  onError={(e) => {
+                    // If image fails to load, show letter placeholder
+                    e.target.style.display = 'none';
+                    e.target.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+
+                {/* Fallback to letter if image fails */}
+                <div className='text-4xl text-gray-500 dark:text-gray-400 hidden'>
                   {template.name.charAt(0).toUpperCase()}
                 </div>
               </div>
@@ -316,9 +400,21 @@ export const WorkflowTemplateDetails = ({ template, onBack, onImport }) => {
                   Workflow Preview
                 </h2>
 
-                <div className='relative h-96 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center'>
+                <div className='relative h-96 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden'>
                   {/* This would show a diagram or screenshot of the workflow */}
-                  <div className='text-center text-gray-500 dark:text-gray-400'>
+                  <img
+                    src={getWorkflowDiagramImage()}
+                    alt={`${template.name} workflow diagram`}
+                    className='w-full h-full object-contain p-4'
+                    onError={(e) => {
+                      // If image fails to load, show text placeholder
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling.style.display = 'flex';
+                    }}
+                  />
+
+                  {/* Fallback if diagram fails to load */}
+                  <div className='hidden absolute inset-0 flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 p-8'>
                     <p className='text-2xl mb-2'>Preview</p>
                     <p className='text-sm'>
                       Contains {template.nodeCount} nodes including agents,
