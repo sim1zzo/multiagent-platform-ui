@@ -1,26 +1,19 @@
 // components/pages/Dashboard.jsx - Updated with Conversation Flow
 import React, { useState, useEffect } from 'react';
 import {
-  BarChart2,
   Activity,
   Clock,
-  Calendar,
   CheckCircle,
   XCircle,
   AlertCircle,
-  ArrowRight,
   ArrowLeft,
   Play,
   Pause,
   RefreshCw,
   Users,
-  Database,
-  Cpu,
-  MessageSquare,
   Zap,
   Edit,
   Eye,
-  Trash2,
   BrainCircuit,
 } from 'lucide-react';
 import ConversationFlowVisualizer from '../visualization/ConversationFlowVisualizer';
