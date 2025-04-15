@@ -1,4 +1,4 @@
-// components/Header.jsx - Updated with Marketplace button
+// components/Header.jsx - Updated with reduced logo gap
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Save,
@@ -22,7 +22,7 @@ export const Header = ({
   onLoad,
   onExport,
   onReset,
-  onOpenMarketplace, // New prop for marketplace
+  onOpenMarketplace,
   darkMode,
   toggleDarkMode,
   navigateTo,
@@ -113,17 +113,33 @@ export const Header = ({
     >
       <div className='flex items-center'>
         <div className='flex items-center mr-8'>
-          <div className='w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white mr-2'>
-            <Brain className='w-5 h-5' />
+          {/* Reply Sense Logo - Reduced right margin */}
+          <div className='h-10 mr-0'>
+            <img 
+              src="/reply_sense_logo.png" 
+              alt="Reply Sense Logo" 
+              className="h-full"
+              onError={(e) => {
+                // Fallback if image fails to load
+                e.target.style.display = 'none';
+              }}
+            />
           </div>
-          <h1
-            className={`text-xl font-bold ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            } cursor-pointer`}
-            onClick={() => handleNavigate('workflow')}
-          >
-            MultiAgent Workflow
-          </h1>
+          
+          {/* MultiAgent Workflow with icon - Reduced left margin */}
+          <div className='flex items-center ml-0'>
+            <div className='w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white mr-2'>
+              <Brain className='w-5 h-5' />
+            </div>
+            <h1
+              className={`text-xl font-bold ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              } cursor-pointer`}
+              onClick={() => handleNavigate('workflow')}
+            >
+              MultiAgent Workflow
+            </h1>
+          </div>
         </div>
 
         <nav className='hidden md:flex items-center space-x-6'>
