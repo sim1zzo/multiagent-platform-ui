@@ -1,0 +1,71 @@
+{
+    "start_node": "sintesi",
+    "end_nodes": ["traduzione_en", "traduzione_fr"],
+    "input": "Il sole splende oggi e molte persone stanno andando al parco per godersi il bel tempo.",
+    "nodes": [
+      {
+        "id": "sintesi",
+        "type": "llm",
+        "config": {
+          "mode": "chain",
+          "prompt": "Fornisci un riassunto breve del seguente testo: {input}"
+        }
+      },
+      {
+        "id": "traduzione_en",
+        "type": "llm",
+        "config": {
+          "mode": "chain",
+          "prompt": "Traduci in inglese il seguente riassunto: {sintesi}"
+        }
+      },
+      {
+        "id": "traduzione_fr",
+        "type": "llm",
+        "config": {
+          "mode": "chain",
+          "prompt": "Traduci in francese il seguente riassunto: {input}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "sintesi",
+        "target": "traduzione_en"
+      },
+      {
+        "source": "sintesi",
+        "target": "traduzione_fr"
+      }
+    ]
+  }
+  {
+    "start_node": "translate_en",
+    "end_nodes": ["translate_fr"],
+    "input": "Ciao, come stai?",
+    "nodes": [
+      {
+        "id": "translate_en",
+        "type": "llm",
+        "config": {
+          "mode": "chain",
+          "prompt": "Traduci in inglese la seguente frase: {input}"
+        }
+      },
+      {
+        "id": "translate_fr",
+        "type": "llm",
+        "config": {
+          "mode": "chain",
+          "prompt": "Traduci in francese la seguente frase: {input}"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "translate_en",
+        "target": "translate_fr"
+      }
+    ]
+  }
+    
