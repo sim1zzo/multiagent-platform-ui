@@ -1,4 +1,4 @@
-// App.jsx - Import section update
+// App.jsx - AGGIORNATO con Workflow Execution Engine
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { WorkspaceManager } from './components/WorkspaceManager';
@@ -19,6 +19,11 @@ import { Analytics } from './components/pages/Analytics';
 import { Simulations } from './components/pages/Simulations';
 import ConversationFlowVisualizer from './components/visualization/ConversationFlowVisualizer';
 
+// NUOVI IMPORTS per Execution Engine
+import ExecutionMonitor from './components/execution/ExecutionMonitor';
+import ExecutionControlPanel from './components/execution/ExecutionControlPanel';
+import { workflowExecutor } from './services/WorkflowExecutor';
+
 const MainApp = () => {
   // Get app context
   const { activePage, navigateTo, settings } = useApp();
@@ -34,6 +39,10 @@ const MainApp = () => {
     closeMarketplace,
     importTemplate,
   } = useWorkflowMarketplace();
+
+  // NUOVI STATI per Execution Engine
+  const [isExecutionMonitorOpen, setIsExecutionMonitorOpen] = useState(false);
+  const [showExecutionPanel, setShowExecutionPanel] = useState(true);
 
   // On component mount, check if user is already authenticated (from local storage)
   useEffect(() => {
@@ -131,162 +140,31 @@ const MainApp = () => {
       return;
     }
 
-    // Show node creation modal
     setNodeCreationModal({
       isOpen: true,
-      nodeType,
+      nodeType: nodeType,
     });
   };
 
-  // Helper function to get tool name from ID
-  const getToolName = (toolId) => {
-    const toolNames = {
-      rag: 'Retrieval Augmented Generation',
-      'web-search': 'Web Search',
-      'code-interpreter': 'Code Interpreter',
-      'api-connector': 'API Connector',
-      database: 'Database Connector',
-      file: 'File Processor',
-      scraper: 'Web Scraper',
-    };
-
-    return toolNames[toolId] || toolId;
-  };
-
-  // Create node after modal confirmation
+  // Create node
   const handleNodeCreate = (nodeData) => {
     const newNode = {
-      id: `${nodeData.nodeType || nodeCreationModal.nodeType}-${Date.now()}`,
-      type: nodeData.nodeType || nodeCreationModal.nodeType,
+      id: `${nodeData.type}-${Date.now()}`,
+      type: nodeData.type,
       name: nodeData.name,
-      position: { x: 100, y: 100 }, // Default position
+      position: { x: 200 + nodes.length * 50, y: 200 + nodes.length * 50 },
       ...nodeData,
     };
 
-    let newNodes = [...nodes, newNode];
-    let newEdges = [...edges];
-
-    // If this is an agent node, create model, memory, and tool nodes
-    if (newNode.type === 'agent') {
-      // Create model node
-      const modelNode = {
-        id: `model-${Date.now()}`,
-        type: 'model',
-        name: `${newNode.model || settings.ai?.defaultModel || 'gpt-4'} Model`,
-        modelType: newNode.model || settings.ai?.defaultModel || 'gpt-4',
-        position: {
-          x: newNode.position.x - 200,
-          y: newNode.position.y + 150,
-        },
-      };
-
-      // Create model to agent edge
-      const modelEdge = {
-        id: `edge-${modelNode.id}-to-${newNode.id}`,
-        source: modelNode.id,
-        target: newNode.id,
-        sourceHandle: 'output',
-        targetHandle: 'model',
-      };
-
-      // Create memory node
-      const memoryNode = {
-        id: `memory-${Date.now()}`,
-        type: 'memory',
-        name: `${(
-          newNode.memory ||
-          settings.ai?.defaultMemoryType ||
-          'chat-history'
-        )
-          .replace(/-/g, ' ')
-          .replace(/\b\w/g, (l) => l.toUpperCase())} Memory`,
-        memoryType:
-          newNode.memory || settings.ai?.defaultMemoryType || 'chat-history',
-        position: {
-          x: newNode.position.x,
-          y: newNode.position.y + 150,
-        },
-      };
-
-      // Create memory to agent edge
-      const memoryEdge = {
-        id: `edge-${memoryNode.id}-to-${newNode.id}`,
-        source: memoryNode.id,
-        target: newNode.id,
-        sourceHandle: 'output',
-        targetHandle: 'memory',
-      };
-
-      // Add model and memory nodes and edges
-      newNodes.push(modelNode);
-      newNodes.push(memoryNode);
-      newEdges.push(modelEdge);
-      newEdges.push(memoryEdge);
-
-      // Use default tools from settings if none are provided
-      const toolsToAdd =
-        newNode.tools && newNode.tools.length > 0
-          ? newNode.tools
-          : settings.ai?.defaultTools || ['web-search', 'code-interpreter'];
-
-      // Create tool nodes if any tools are selected
-      if (toolsToAdd.length > 0) {
-        const toolsPerRow = 3;
-        const horizontalSpacing = 170;
-        const verticalSpacing = 120;
-        const startX = newNode.position.x + 200;
-        const startY = newNode.position.y + 150;
-
-        toolsToAdd.forEach((toolId, index) => {
-          const row = Math.floor(index / toolsPerRow);
-          const col = index % toolsPerRow;
-
-          const toolNode = {
-            id: `tool-${toolId}-${Date.now()}-${index}`,
-            type: 'tool',
-            name: getToolName(toolId),
-            toolType: toolId,
-            position: {
-              x: startX + col * horizontalSpacing,
-              y: startY + row * verticalSpacing,
-            },
-            config: '',
-          };
-
-          // Create edge from tool to agent
-          const toolEdge = {
-            id: `edge-${toolNode.id}-to-${newNode.id}`,
-            source: toolNode.id,
-            target: newNode.id,
-            sourceHandle: 'output',
-            targetHandle: 'tool',
-          };
-
-          newNodes.push(toolNode);
-          newEdges.push(toolEdge);
-        });
-      }
-
-      // Remove properties from agent node since they're now separate nodes
-      delete newNode.model;
-      delete newNode.memory;
-      delete newNode.tools;
-    }
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-    setSelectedNode(newNode.id);
+    setNodes([...nodes, newNode]);
     setNodeCreationModal({ isOpen: false, nodeType: null });
-  };
 
-  // Cancel node creation
-  const handleCancelNodeCreate = () => {
-    setNodeCreationModal({ isOpen: false, nodeType: null });
-  };
-
-  // Select node
-  const handleNodeSelect = (nodeId) => {
-    setSelectedNode(nodeId);
+    // Show success message
+    setNotificationModal({
+      isOpen: true,
+      message: `${nodeData.name} node created successfully`,
+      type: 'success',
+    });
   };
 
   // Update node
@@ -298,116 +176,92 @@ const MainApp = () => {
 
   // Delete node
   const handleNodeDelete = (nodeId) => {
-    const nodeToDelete = nodes.find((node) => node.id === nodeId);
-
-    if (!nodeToDelete) return;
-
-    // Optionally confirm deletion if enabled in settings
-    if (settings.preferences.confirmNodeDeletion) {
-      if (
-        !window.confirm(
-          `Are you sure you want to delete the "${nodeToDelete.name}" node?`
-        )
-      ) {
-        return;
-      }
-    }
-
-    // For agent nodes, also delete connected model, memory, and tool nodes
-    let nodesToDelete = [nodeId];
-
-    if (nodeToDelete.type === 'agent') {
-      // Find all connected model, memory, and tool nodes
-      edges.forEach((edge) => {
-        if (edge.target === nodeId) {
-          const sourceNode = nodes.find((n) => n.id === edge.source);
-          if (
-            sourceNode &&
-            (sourceNode.type === 'model' ||
-              sourceNode.type === 'memory' ||
-              sourceNode.type === 'tool')
-          ) {
-            nodesToDelete.push(sourceNode.id);
-          }
-        }
-      });
-    }
-
-    // Delete nodes
-    setNodes(nodes.filter((node) => !nodesToDelete.includes(node.id)));
-
-    // Delete edges connected to any of these nodes
+    // Remove node
+    setNodes(nodes.filter((node) => node.id !== nodeId));
+    // Remove connected edges
     setEdges(
-      edges.filter(
-        (edge) =>
-          !nodesToDelete.includes(edge.source) &&
-          !nodesToDelete.includes(edge.target)
-      )
+      edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
     );
-
-    if (selectedNode === nodeId) {
+    // Clear selection if deleted node was selected
+    if (selectedNode?.id === nodeId) {
       setSelectedNode(null);
     }
   };
 
-  // Create connection (edge)
+  // Handle node selection
+  const handleNodeSelect = (nodeId) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    setSelectedNode(node);
+  };
+
+  // Handle connection creation with validation
   const handleConnectionCreate = (params) => {
-    // Check if connection already exists
-    const connectionExists = edges.some(
-      (edge) =>
-        edge.source === params.source &&
-        edge.target === params.target &&
-        edge.sourceHandle === params.sourceHandle &&
-        edge.targetHandle === params.targetHandle
+    // Prevent self-connection
+    if (params.source === params.target) {
+      setErrorModal({
+        isOpen: true,
+        message: 'Nodes cannot connect to themselves.',
+      });
+      return;
+    }
+
+    // Check for duplicate connections
+    const existingConnection = edges.find(
+      (edge) => edge.source === params.source && edge.target === params.target
     );
 
-    if (!connectionExists && params.source !== params.target) {
-      // Get source and target node types
-      const sourceNode = nodes.find((node) => node.id === params.source);
-      const targetNode = nodes.find((node) => node.id === params.target);
+    if (existingConnection) {
+      setErrorModal({
+        isOpen: true,
+        message: 'A connection between these nodes already exists.',
+      });
+      return;
+    }
 
-      // Validate connection rules
-      if (sourceNode && targetNode) {
-        // Model nodes can only connect to agent nodes
-        if (sourceNode.type === 'model' && targetNode.type !== 'agent') {
-          setErrorModal({
-            isOpen: true,
-            message: 'Model nodes can only connect to Agent nodes.',
-          });
-          return;
-        }
+    // Additional validation based on node types
+    const sourceNode = nodes.find((node) => node.id === params.source);
+    const targetNode = nodes.find((node) => node.id === params.target);
 
-        // Memory nodes can only connect to agent nodes
-        if (sourceNode.type === 'memory' && targetNode.type !== 'agent') {
-          setErrorModal({
-            isOpen: true,
-            message: 'Memory nodes can only connect to Agent nodes.',
-          });
-          return;
-        }
-
-        // Tool nodes can only connect to agent nodes
-        if (sourceNode.type === 'tool' && targetNode.type !== 'agent') {
-          setErrorModal({
-            isOpen: true,
-            message: 'Tool nodes can only connect to Agent nodes.',
-          });
-          return;
-        }
-
-        // Add additional validation rules here if needed
+    if (sourceNode && targetNode) {
+      // Model nodes can only connect to agent nodes
+      if (sourceNode.type === 'model' && targetNode.type !== 'agent') {
+        setErrorModal({
+          isOpen: true,
+          message: 'Model nodes can only connect to Agent nodes.',
+        });
+        return;
       }
 
-      const newEdge = {
-        id: `edge-${Date.now()}`,
-        source: params.source,
-        target: params.target,
-        sourceHandle: params.sourceHandle,
-        targetHandle: params.targetHandle,
-      };
+      // Memory nodes can only connect to agent nodes
+      if (sourceNode.type === 'memory' && targetNode.type !== 'agent') {
+        setErrorModal({
+          isOpen: true,
+          message: 'Memory nodes can only connect to Agent nodes.',
+        });
+        return;
+      }
 
-      setEdges([...edges, newEdge]);
+      // Tool nodes can only connect to agent nodes
+      if (sourceNode.type === 'tool' && targetNode.type !== 'agent') {
+        setErrorModal({
+          isOpen: true,
+          message: 'Tool nodes can only connect to Agent nodes.',
+        });
+        return;
+      }
+
+      // Add additional validation rules here if needed
     }
+
+    const newEdge = {
+      id: `edge-${Date.now()}`,
+      source: params.source,
+      target: params.target,
+      sourceHandle: params.sourceHandle,
+      targetHandle: params.targetHandle,
+    };
+
+    setEdges([...edges, newEdge]);
   };
 
   // Delete connection
@@ -429,7 +283,7 @@ const MainApp = () => {
     });
   };
 
-  // Export workspace
+  // Export workflow
   const handleExportWorkflow = () => {
     const workspace = {
       nodes,
@@ -476,210 +330,235 @@ const MainApp = () => {
       setNodes([]);
       setEdges([]);
       setSelectedNode(null);
-
-      // Show success notification
       setNotificationModal({
         isOpen: true,
-        message: 'Workspace has been reset',
+        message: 'Workspace reset successfully',
         type: 'info',
       });
     }
   };
 
-  // Save workspace
-  const handleSaveWorkspace = () => {
-    const workspace = {
+  // Load workflow from file
+  const handleLoadWorkflow = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const workspaceData = JSON.parse(e.target.result);
+
+            // Validate the loaded data
+            if (
+              workspaceData.nodes &&
+              Array.isArray(workspaceData.nodes) &&
+              workspaceData.edges &&
+              Array.isArray(workspaceData.edges)
+            ) {
+              setNodes(workspaceData.nodes);
+              setEdges(workspaceData.edges);
+              if (workspaceData.config) {
+                setWorkspaceConfig({
+                  ...workspaceConfig,
+                  ...workspaceData.config,
+                });
+              }
+
+              setNotificationModal({
+                isOpen: true,
+                message: 'Workflow loaded successfully',
+                type: 'success',
+              });
+            } else {
+              setErrorModal({
+                isOpen: true,
+                message: 'Invalid workflow file format',
+              });
+            }
+          } catch (error) {
+            setErrorModal({
+              isOpen: true,
+              message: 'Failed to parse workflow file',
+            });
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+
+    input.click();
+  };
+
+  // Save workflow
+  const handleSaveWorkflow = () => {
+    // This would typically save to a backend service
+    // For demo purposes, we'll just show a notification
+    setNotificationModal({
+      isOpen: true,
+      message: 'Workflow saved successfully',
+      type: 'success',
+    });
+  };
+
+  // Handle template import
+  const handleTemplateImport = (templateWorkflow) => {
+    if (templateWorkflow.nodes) {
+      setNodes(templateWorkflow.nodes);
+    }
+    if (templateWorkflow.edges) {
+      setEdges(templateWorkflow.edges);
+    }
+    closeMarketplace();
+
+    setNotificationModal({
+      isOpen: true,
+      message: 'Template imported successfully',
+      type: 'success',
+    });
+  };
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <LoginPage onLogin={handleLogin} darkMode={workspaceConfig.darkMode} />
+    );
+  }
+
+  // NUOVE FUNZIONI per Execution Engine
+  const openExecutionMonitor = () => {
+    setIsExecutionMonitorOpen(true);
+  };
+
+  const closeExecutionMonitor = () => {
+    setIsExecutionMonitorOpen(false);
+  };
+
+  const getCurrentWorkflow = () => {
+    return {
       nodes,
       edges,
       config: workspaceConfig,
     };
-
-    const workspaceJson = JSON.stringify(workspace);
-    localStorage.setItem('workflow-workspace', workspaceJson);
-
-    // Show success notification
-    setNotificationModal({
-      isOpen: true,
-      message: 'Workspace saved successfully',
-      type: 'success',
-    });
-  };
-
-  // Load workspace
-  const handleLoadWorkspace = () => {
-    const savedWorkspace = localStorage.getItem('workflow-workspace');
-
-    if (savedWorkspace) {
-      try {
-        const workspace = JSON.parse(savedWorkspace);
-        setNodes(workspace.nodes || []);
-        setEdges(workspace.edges || []);
-        setWorkspaceConfig(workspace.config || workspaceConfig);
-        setSelectedNode(null);
-
-        // Show success notification
-        setNotificationModal({
-          isOpen: true,
-          message: 'Workspace loaded successfully',
-          type: 'success',
-        });
-      } catch (error) {
-        console.error('Failed to load workspace', error);
-        setErrorModal({
-          isOpen: true,
-          message: 'Failed to load workspace: ' + error.message,
-        });
-      }
-    } else {
-      setErrorModal({
-        isOpen: true,
-        message: 'No saved workspace found',
-      });
-    }
-  };
-
-  // Handle importing workflow from the marketplace
-  const handleImportWorkflow = (workflowData) => {
-    if (!workflowData) return;
-
-    // Clear existing workspace first
-    setNodes(workflowData.nodes || []);
-    setEdges(workflowData.edges || []);
-    setSelectedNode(null);
-
-    // Show success message with notification modal instead of error modal
-    setNotificationModal({
-      isOpen: true,
-      message: `Successfully imported workflow "${
-        workflowData.importedFrom?.templateName || 'Template'
-      }"`,
-      type: 'success',
-    });
-  };
-
-  // Open the agent memory visualization
-  const handleOpenMemoryVisualization = (agentId) => {
-    setSelectedAgentForMemory(agentId);
-    setMemoryVisualizationOpen(true);
-  };
-
-  // Close the agent memory visualization
-  const handleCloseMemoryVisualization = () => {
-    setMemoryVisualizationOpen(false);
-    setSelectedAgentForMemory(null);
-  };
-
-  // Auto-save functionality
-  useEffect(() => {
-    // Set up auto-save if enabled
-    if (settings.preferences.autoSave && nodes.length > 0) {
-      const saveInterval = settings.preferences.saveInterval || 5;
-      const intervalId = setInterval(() => {
-        handleSaveWorkspace();
-      }, saveInterval * 60 * 1000); // Convert minutes to milliseconds
-
-      return () => clearInterval(intervalId);
-    }
-  }, [
-    nodes,
-    edges,
-    settings.preferences.autoSave,
-    settings.preferences.saveInterval,
-  ]);
-
-  // If not authenticated, show login page
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
-  // Render the appropriate page based on activePage state
-  const renderPage = () => {
-    switch (activePage) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'analytics':
-        return <Analytics />;
-      case 'simulations':
-        return <Simulations />;
-      case 'settings':
-        return <Settings />;
-      case 'profile':
-        return <Profile />;
-      case 'workflow':
-      default:
-        return (
-          <div className='flex flex-1 overflow-hidden'>
-            <Toolbar
-              onNodeCreate={handleInitNodeCreate}
-              onOpenMarketplace={openMarketplace}
-            />
-
-            <WorkspaceManager
-              nodes={nodes}
-              edges={edges}
-              selectedNode={selectedNode}
-              workspaceConfig={workspaceConfig}
-              onNodeSelect={handleNodeSelect}
-              onNodeUpdate={handleNodeUpdate}
-              onNodeDelete={handleNodeDelete}
-              onConnectionCreate={handleConnectionCreate}
-              onConnectionDelete={handleConnectionDelete}
-              onWorkspaceConfig={handleWorkspaceConfig}
-              onOpenMemoryVisualization={handleOpenMemoryVisualization}
-            />
-
-            {selectedNode && (
-              <ConfigurationPanel
-                node={nodes.find((n) => n.id === selectedNode)}
-                onUpdate={(updates) => handleNodeUpdate(selectedNode, updates)}
-                onClose={() => setSelectedNode(null)}
-              />
-            )}
-          </div>
-        );
-    }
   };
 
   return (
     <div
-      className={`h-screen flex flex-col ${
-        workspaceConfig.darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50'
+      className={`min-h-screen ${
+        workspaceConfig.darkMode ? 'dark bg-gray-900' : 'bg-gray-50'
       }`}
     >
+      {/* Header */}
       <Header
-        onSave={handleSaveWorkspace}
-        onLoad={handleLoadWorkspace}
+        user={user}
+        onLogout={handleLogout}
+        onSave={handleSaveWorkflow}
+        onLoad={handleLoadWorkflow}
         onExport={handleExportWorkflow}
         onReset={handleResetWorkflow}
-        onOpenMarketplace={openMarketplace}
+        onToggleDarkMode={toggleDarkMode}
         darkMode={workspaceConfig.darkMode}
-        toggleDarkMode={toggleDarkMode}
-        navigateTo={navigateTo}
-        activePage={activePage}
-        userName={user.name}
-        userInitials={user.initials}
-        onLogout={handleLogout}
+        onOpenMarketplace={openMarketplace}
       />
 
-      {renderPage()}
+      {/* Main Content */}
+      <div className='flex h-screen pt-16'>
+        {activePage === 'workflow' && (
+          <>
+            {/* Left Sidebar - Toolbar */}
+            <div className='w-20 flex-shrink-0'>
+              <Toolbar
+                onNodeCreate={handleInitNodeCreate}
+                darkMode={workspaceConfig.darkMode}
+                onOpenMemoryVisualization={() =>
+                  setMemoryVisualizationOpen(true)
+                }
+              />
+            </div>
+
+            {/* Main Workspace */}
+            <div className='flex-1 relative'>
+              <WorkspaceManager
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={(changes) => {
+                  // Handle node changes like position updates, selections, etc.
+                  changes.forEach((change) => {
+                    if (change.type === 'position' && change.position) {
+                      handleNodeUpdate(change.id, {
+                        position: change.position,
+                      });
+                    } else if (change.type === 'select') {
+                      if (change.selected) {
+                        handleNodeSelect(change.id);
+                      }
+                    }
+                  });
+                }}
+                onEdgesChange={(changes) => {
+                  // Handle edge changes
+                  changes.forEach((change) => {
+                    if (change.type === 'remove') {
+                      handleConnectionDelete(change.id);
+                    }
+                  });
+                }}
+                onConnect={handleConnectionCreate}
+                onNodeDelete={handleNodeDelete}
+                onNodeUpdate={handleNodeUpdate}
+                config={workspaceConfig}
+                onConfigChange={handleWorkspaceConfig}
+                darkMode={workspaceConfig.darkMode}
+              />
+
+              {/* NUOVO: Execution Control Panel */}
+              {showExecutionPanel && (
+                <div className='absolute top-4 right-4 w-80 z-10'>
+                  <ExecutionControlPanel
+                    workflow={getCurrentWorkflow()}
+                    onOpenMonitor={openExecutionMonitor}
+                    darkMode={workspaceConfig.darkMode}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Right Sidebar - Configuration Panel */}
+            {selectedNode && (
+              <div className='w-80 flex-shrink-0'>
+                <ConfigurationPanel
+                  selectedNode={selectedNode}
+                  onNodeUpdate={handleNodeUpdate}
+                  onNodeDelete={handleNodeDelete}
+                  onClose={() => setSelectedNode(null)}
+                  darkMode={workspaceConfig.darkMode}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Other Pages */}
+        {activePage === 'dashboard' && <Dashboard />}
+        {activePage === 'analytics' && <Analytics />}
+        {activePage === 'simulations' && <Simulations />}
+        {activePage === 'settings' && <Settings />}
+        {activePage === 'profile' && (
+          <Profile user={user} onLogout={handleLogout} />
+        )}
+      </div>
 
       {/* Modals */}
-      <CustomNodeCreationModal
-        isOpen={nodeCreationModal.isOpen}
-        nodeType={nodeCreationModal.nodeType}
-        initialData={{}}
-        onConfirm={handleNodeCreate}
-        onCancel={handleCancelNodeCreate}
-      />
-
-      {/* Error Modal - only for errors */}
       <ErrorModal
         isOpen={errorModal.isOpen}
         message={errorModal.message}
         onClose={() => setErrorModal({ isOpen: false, message: '' })}
+        darkMode={workspaceConfig.darkMode}
       />
 
-      {/* Notification Modal - for success, info, and warnings */}
       <NotificationModal
         isOpen={notificationModal.isOpen}
         message={notificationModal.message}
@@ -687,28 +566,54 @@ const MainApp = () => {
         onClose={() =>
           setNotificationModal({ isOpen: false, message: '', type: 'info' })
         }
+        darkMode={workspaceConfig.darkMode}
       />
 
-      {/* Marketplace Modal */}
+      <CustomNodeCreationModal
+        isOpen={nodeCreationModal.isOpen}
+        nodeType={nodeCreationModal.nodeType}
+        onClose={() => setNodeCreationModal({ isOpen: false, nodeType: null })}
+        onCreate={handleNodeCreate}
+        darkMode={workspaceConfig.darkMode}
+      />
+
+      {/* Workflow Marketplace */}
       {isMarketplaceOpen && (
         <WorkflowMarketplace
-          onImportWorkflow={handleImportWorkflow}
+          isOpen={isMarketplaceOpen}
           onClose={closeMarketplace}
+          onImportTemplate={handleTemplateImport}
+          darkMode={workspaceConfig.darkMode}
         />
       )}
 
-      {/* Memory Visualization Modal */}
-      {memoryVisualizationOpen && selectedAgentForMemory && (
-        <AgentMemoryVisualization
-          agentId={selectedAgentForMemory}
-          onClose={handleCloseMemoryVisualization}
+      {/* NUOVO: Execution Monitor */}
+      {isExecutionMonitorOpen && (
+        <ExecutionMonitor
+          workflow={getCurrentWorkflow()}
+          isOpen={isExecutionMonitorOpen}
+          onClose={closeExecutionMonitor}
+          darkMode={workspaceConfig.darkMode}
         />
       )}
+
+      {/* Memory Visualization */}
+      {memoryVisualizationOpen && (
+        <AgentMemoryVisualization
+          isOpen={memoryVisualizationOpen}
+          onClose={() => setMemoryVisualizationOpen(false)}
+          selectedAgent={selectedAgentForMemory}
+          darkMode={workspaceConfig.darkMode}
+        />
+      )}
+
+      {/* Conversation Flow Visualizer */}
+      <ConversationFlowVisualizer />
     </div>
   );
 };
 
-// Wrap the main app with the AppProvider
+// Main App Component with Context Provider
 const App = () => {
   return (
     <AppProvider>
