@@ -6,8 +6,8 @@ A React-based user interface for creating, configuring, and managing collaborati
 
 This project has been developed by:
 
-- **Simone Izzo** - Lead Developer & UI/UX Designer
-- **Antonio Carbone** - Backend Integration & Architecture
+- **Simone Izzo** - Lead AI Engineer
+- **Antonio Carbone** - Lead AI Engineer
 
 ## 🚀 Project Overview
 
