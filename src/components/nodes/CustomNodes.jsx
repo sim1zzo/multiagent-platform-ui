@@ -77,7 +77,7 @@ export const TriggerNode = ({ data }) => {
   );
 };
 
-// Agent Node
+// Agent Node - VERSIONE FINALE PULITA
 export const AgentNode = ({ data }) => {
   return (
     <>
@@ -86,7 +86,7 @@ export const AgentNode = ({ data }) => {
         type='target'
         position={Position.Bottom}
         id='model'
-        style={{ left: '30%', bottom: 0 }}
+        style={{ left: '25%', bottom: 0 }}
       />
       <Handle
         type='target'
@@ -94,11 +94,12 @@ export const AgentNode = ({ data }) => {
         id='memory'
         style={{ left: '50%', bottom: 0 }}
       />
+      {/* AGGIUNGI questo handle per tools */}
       <Handle
         type='target'
         position={Position.Bottom}
         id='tool'
-        style={{ left: '70%', bottom: 0 }}
+        style={{ left: '75%', bottom: 0 }}
       />
       <Handle type='source' position={Position.Right} id='default' />
 
@@ -110,6 +111,18 @@ export const AgentNode = ({ data }) => {
         onDelete={data.onDelete}
         isSelected={data.isSelected}
       >
+        <div className='mt-2 text-xs text-gray-500'>
+          <div>Type: {data.type}</div>
+          <div>Role: {data.role || 'thinker'}</div>
+
+          {data.tools && data.tools.length > 0 && (
+            <div className='mt-1 text-gray-600'>
+              Tools: {data.tools.join(', ')}
+            </div>
+          )}
+        </div>
+
+        {/* Torna a 3 colonne per mostrare Model, Memory, Tools */}
         <div className='mt-2 grid grid-cols-3 gap-1 text-center text-xs'>
           <div className='px-1 py-0.5 bg-blue-100 rounded text-blue-700'>
             Model
@@ -125,7 +138,6 @@ export const AgentNode = ({ data }) => {
     </>
   );
 };
-
 // Condition Node
 export const ConditionNode = ({ data }) => {
   return (
@@ -193,7 +205,7 @@ export const ActionNode = ({ data }) => {
   );
 };
 
-// Tool Node
+// // Tool Node
 export const ToolNode = ({ data }) => {
   return (
     <>
@@ -214,7 +226,6 @@ export const ToolNode = ({ data }) => {
     </>
   );
 };
-
 // Model Node
 export const ModelNode = ({ data }) => {
   return (

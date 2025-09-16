@@ -29,7 +29,7 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
     },
     {
       id: 'agent',
-      name: 'Agent Node',
+      name: 'Agent',
       icon: <Brain className='w-5 h-5' />,
       description: 'AI agent with model, memory and tools',
       color: 'text-blue-600',

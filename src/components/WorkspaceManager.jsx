@@ -132,7 +132,7 @@ export const WorkspaceManager = ({
         return false;
       }
 
-      // Tool nodes can only connect to agent nodes
+      // // Tool nodes can only connect to agent nodes
       if (sourceNode.type === 'tool' && targetNode.type !== 'agent') {
         return false;
       }

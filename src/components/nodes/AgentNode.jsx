@@ -54,6 +54,14 @@ const getRoleColor = (role) => {
 };
 
 export const AgentNode = memo(({ data, isConnectable }) => {
+  // DEBUG: Verifica TUTTO il contenuto di data
+  console.log('=== AGENTNODE DEBUG ===');
+  console.log('Tutto data:', data);
+  console.log('data.tools:', data.tools);
+  console.log('Tipo di data.tools:', typeof data.tools);
+  console.log('È array?', Array.isArray(data.tools));
+  console.log('Lunghezza:', data.tools?.length);
+
   const [expanded, setExpanded] = React.useState(false);
   const [showMemory, setShowMemory] = useState(false);
 
@@ -62,16 +70,18 @@ export const AgentNode = memo(({ data, isConnectable }) => {
     role,
     type,
     isSelected,
-    parameters,
+    parameters = {}, // default value
     knowledgeBase,
     onSelect,
     onDelete,
   } = data;
+  // DEBUG: Verifica dopo la destrutturazione
+  const tools = data.tools || [];
+  console.log('tools dopo destrutturazione:', tools);
+  console.log('tools === data.tools?', tools === data.tools);
 
   const roleColor = getRoleColor(role);
   const RoleIcon = getRoleIcon(role);
-
-  // Derive agent ID from node ID
   const agentId = data.id || 'agent-123456';
 
   return (
@@ -85,7 +95,7 @@ export const AgentNode = memo(({ data, isConnectable }) => {
           onSelect();
         }}
       >
-        {/* Handles for connections */}
+        {/* Handles rimangono uguali */}
         <Handle
           type='target'
           position={Position.Top}
@@ -99,7 +109,7 @@ export const AgentNode = memo(({ data, isConnectable }) => {
           isConnectable={isConnectable}
         />
 
-        {/* Header */}
+        {/* Header rimane uguale */}
         <div
           className={`flex items-center p-2 rounded-t-lg ${roleColor} text-white`}
         >
@@ -116,10 +126,27 @@ export const AgentNode = memo(({ data, isConnectable }) => {
           </button>
         </div>
 
+        {/* Basic Info - QUI È IL PROBLEMA */}
         {/* Basic Info */}
         <div className='p-2 text-sm'>
           <div className='text-gray-600'>Type: {type}</div>
           <div className='text-gray-600'>Role: {role}</div>
+
+          {/* DEBUG: Aggiungi questi log per vedere cosa succede */}
+          {console.log('AgentNode rendering - data:', data)}
+          {console.log('AgentNode rendering - data.tools:', data.tools)}
+
+          {/* FIX 1: Usa data.tools direttamente (bypassa destrutturazione) */}
+          {data.tools && Array.isArray(data.tools) && data.tools.length > 0 && (
+            <div className='mt-1 text-xs text-gray-500'>
+              Tools: {data.tools.join(', ')}
+            </div>
+          )}
+
+          {/* DEBUG: Mostra sempre per test - RIMUOVI DOPO */}
+          <div className='mt-1 text-xs text-red-500'>
+            Debug: {data.tools ? JSON.stringify(data.tools) : 'NO TOOLS'}
+          </div>
 
           <div className='flex justify-between items-center mt-2'>
             <button
@@ -142,7 +169,6 @@ export const AgentNode = memo(({ data, isConnectable }) => {
               )}
             </button>
 
-            {/* New memory visualization button */}
             <button
               className='flex items-center text-xs text-purple-500 hover:text-purple-700'
               onClick={(e) => {
@@ -157,13 +183,13 @@ export const AgentNode = memo(({ data, isConnectable }) => {
           </div>
         </div>
 
-        {/* Expanded Details */}
+        {/* Expanded Details - rimane uguale */}
         {expanded && (
           <div className='p-2 border-t border-gray-200 text-xs'>
             <div className='mb-1 font-medium'>Parameters:</div>
-            {Object.keys(parameters).length > 0 ? (
+            {Object.keys(parameters || {}).length > 0 ? (
               <ul className='text-gray-600 mb-2'>
-                {Object.entries(parameters).map(([key, value]) => (
+                {Object.entries(parameters || {}).map(([key, value]) => (
                   <li key={key}>
                     {key}: {String(value)}
                   </li>
@@ -183,7 +209,7 @@ export const AgentNode = memo(({ data, isConnectable }) => {
         )}
       </div>
 
-      {/* Memory visualization modal */}
+      {/* Memory visualization modal - rimane uguale */}
       {showMemory && (
         <AgentMemoryVisualization
           agentId={agentId}

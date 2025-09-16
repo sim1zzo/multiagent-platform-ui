@@ -148,9 +148,10 @@ const MainApp = () => {
       database: 'Database Connector',
       file: 'File Processor',
       scraper: 'Web Scraper',
+      mongodb: 'MongoDB Connector',
     };
 
-    return toolNames[toolId] || toolId;
+    return toolNames[toolId] || `${toolId} Tool`;
   };
 
   // Create node after modal confirmation
@@ -159,7 +160,7 @@ const MainApp = () => {
       id: `${nodeData.nodeType || nodeCreationModal.nodeType}-${Date.now()}`,
       type: nodeData.nodeType || nodeCreationModal.nodeType,
       name: nodeData.name,
-      position: { x: 100, y: 100 }, // Default position
+      position: { x: 100, y: 100 },
       ...nodeData,
     };
 
@@ -168,19 +169,18 @@ const MainApp = () => {
 
     // If this is an agent node, create model, memory, and tool nodes
     if (newNode.type === 'agent') {
-      // Create model node
+      // Create model node with updated defaults
       const modelNode = {
         id: `model-${Date.now()}`,
         type: 'model',
-        name: `${newNode.model || settings.ai?.defaultModel || 'gpt-4'} Model`,
-        modelType: newNode.model || settings.ai?.defaultModel || 'gpt-4',
+        name: `${newNode.model || settings.ai?.defaultModel || 'gpt-5'} Model`,
+        modelType: newNode.model || settings.ai?.defaultModel || 'gpt-5',
         position: {
           x: newNode.position.x - 200,
           y: newNode.position.y + 150,
         },
       };
 
-      // Create model to agent edge
       const modelEdge = {
         id: `edge-${modelNode.id}-to-${newNode.id}`,
         source: modelNode.id,
@@ -189,26 +189,25 @@ const MainApp = () => {
         targetHandle: 'model',
       };
 
-      // Create memory node
+      // Create memory node with updated defaults
       const memoryNode = {
         id: `memory-${Date.now()}`,
         type: 'memory',
         name: `${(
           newNode.memory ||
           settings.ai?.defaultMemoryType ||
-          'chat-history'
+          'short-memory'
         )
           .replace(/-/g, ' ')
           .replace(/\b\w/g, (l) => l.toUpperCase())} Memory`,
         memoryType:
-          newNode.memory || settings.ai?.defaultMemoryType || 'chat-history',
+          newNode.memory || settings.ai?.defaultMemoryType || 'short-memory',
         position: {
           x: newNode.position.x,
           y: newNode.position.y + 150,
         },
       };
 
-      // Create memory to agent edge
       const memoryEdge = {
         id: `edge-${memoryNode.id}-to-${newNode.id}`,
         source: memoryNode.id,
@@ -223,11 +222,19 @@ const MainApp = () => {
       newEdges.push(modelEdge);
       newEdges.push(memoryEdge);
 
+      // =================================================================
+      // RIABILITARE QUESTA SEZIONE - Creazione Tool nodes separati
+      // =================================================================
+
       // Use default tools from settings if none are provided
       const toolsToAdd =
         newNode.tools && newNode.tools.length > 0
           ? newNode.tools
-          : settings.ai?.defaultTools || ['web-search', 'code-interpreter'];
+          : settings.ai?.defaultTools || [
+              'web-search',
+              'code-interpreter',
+              'mongodb',
+            ];
 
       // Create tool nodes if any tools are selected
       if (toolsToAdd.length > 0) {
@@ -270,7 +277,12 @@ const MainApp = () => {
       // Remove properties from agent node since they're now separate nodes
       delete newNode.model;
       delete newNode.memory;
+      // PUOI decidere se mantenere o cancellare tools:
+      // OPZIONE A: Cancella tools (solo nodi separati)
       delete newNode.tools;
+
+      // OPZIONE B: Mantieni tools (nodi separati + visualizzazione interna)
+      // Non cancellare newNode.tools se vuoi entrambi
     }
 
     setNodes(newNodes);
@@ -323,9 +335,8 @@ const MainApp = () => {
           const sourceNode = nodes.find((n) => n.id === edge.source);
           if (
             sourceNode &&
-            (sourceNode.type === 'model' ||
-              sourceNode.type === 'memory' ||
-              sourceNode.type === 'tool')
+            (sourceNode.type === 'model' || sourceNode.type === 'memory')
+            // Rimosso: sourceNode.type === 'tool'
           ) {
             nodesToDelete.push(sourceNode.id);
           }
@@ -376,7 +387,6 @@ const MainApp = () => {
           });
           return;
         }
-
         // Memory nodes can only connect to agent nodes
         if (sourceNode.type === 'memory' && targetNode.type !== 'agent') {
           setErrorModal({

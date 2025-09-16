@@ -657,10 +657,10 @@ const ModelNodeForm = ({ node, onUpdate }) => {
             onChange={handleChange}
             className='w-full p-2 border border-gray-300 rounded-md'
           >
-            <option value='gpt-4'>GPT-4</option>
-            <option value='gpt-3.5'>GPT-3.5</option>
-            <option value='claude-3'>Claude 3</option>
-            <option value='llama-3'>Llama 3</option>
+            <option value='gpt-5'>GPT-5</option>
+            <option value='gpt-4.5'>GPT-4.5</option>
+            <option value='claude-4'>Claude 4</option>
+            <option value='gemini-2.5-pro'>Gemini 2.5 Pro</option>
           </select>
         </div>
 
@@ -772,11 +772,8 @@ const MemoryNodeForm = ({ node, onUpdate }) => {
             onChange={handleChange}
             className='w-full p-2 border border-gray-300 rounded-md'
           >
-            <option value='chat-history'>Chat History</option>
-            <option value='vector-store'>Vector Store</option>
-            <option value='postgres'>Postgres</option>
-            <option value='redis'>Redis</option>
-            <option value='stateless'>Stateless</option>
+            <option value='short-memory'>Short Memory</option>
+            <option value='long-memory'>Long Memory</option>
           </select>
         </div>
 
@@ -816,29 +813,29 @@ const MemoryNodeForm = ({ node, onUpdate }) => {
   );
 };
 
-// Shared component for different node type configurations
-const NodeConfigForm = ({ node, onUpdate }) => {
-  if (!node) return null;
+// // Shared component for different node type configurations
+// const NodeConfigForm = ({ node, onUpdate }) => {
+//   if (!node) return null;
 
-  switch (node.type) {
-    case 'trigger':
-      return <TriggerNodeForm node={node} onUpdate={onUpdate} />;
-    case 'agent':
-      return <AgentNodeForm node={node} onUpdate={onUpdate} />;
-    case 'condition':
-      return <ConditionNodeForm node={node} onUpdate={onUpdate} />;
-    case 'action':
-      return <ActionNodeForm node={node} onUpdate={onUpdate} />;
-    case 'tool':
-      return <ToolNodeForm node={node} onUpdate={onUpdate} />;
-    case 'model':
-      return <ModelNodeForm node={node} onUpdate={onUpdate} />;
-    case 'memory':
-      return <MemoryNodeForm node={node} onUpdate={onUpdate} />;
-    default:
-      return <div>Unknown node type: {node.type}</div>;
-  }
-};
+//   switch (node.type) {
+//     case 'trigger':
+//       return <TriggerNodeForm node={node} onUpdate={onUpdate} />;
+//     case 'agent':
+//       return <AgentNodeForm node={node} onUpdate={onUpdate} />;
+//     case 'condition':
+//       return <ConditionNodeForm node={node} onUpdate={onUpdate} />;
+//     case 'action':
+//       return <ActionNodeForm node={node} onUpdate={onUpdate} />;
+//     case 'tool':
+//       return <ToolNodeForm node={node} onUpdate={onUpdate} />;
+//     case 'model':
+//       return <ModelNodeForm node={node} onUpdate={onUpdate} />;
+//     case 'memory':
+//       return <MemoryNodeForm node={node} onUpdate={onUpdate} />;
+//     default:
+//       return <div>Unknown node type: {node.type}</div>;
+//   }
+// };
 
 export const ConfigurationPanel = ({ node, onUpdate, onClose }) => {
   if (!node) return null;
@@ -852,7 +849,7 @@ export const ConfigurationPanel = ({ node, onUpdate, onClose }) => {
         </button>
       </div>
 
-      <NodeConfigForm node={node} onUpdate={onUpdate} />
+      {/* <NodeConfigForm node={node} onUpdate={onUpdate} /> */}
     </div>
   );
 };

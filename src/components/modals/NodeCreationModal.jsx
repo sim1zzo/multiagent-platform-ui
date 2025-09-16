@@ -66,15 +66,21 @@ const TriggerNodeConfig = ({ data, onChange }) => {
 };
 
 const AgentNodeConfig = ({ data, onChange }) => {
-  const [model, setModel] = useState(data?.model || 'gpt-4');
-  const [memory, setMemory] = useState(data?.memory || 'chat-history');
+  const [model, setModel] = useState(data?.model || 'gpt-5'); // Cambiato default
+  const [memory, setMemory] = useState(data?.memory || 'short-memory'); // Cambiato default
   const [tools, setTools] = useState(data?.tools || []);
 
-  const availableTools = [
-    { id: 'rag', name: 'Retrieval Augmented Generation' },
-    { id: 'web-search', name: 'Web Search' },
-    { id: 'code-interpreter', name: 'Code Interpreter' },
-    { id: 'api-connector', name: 'API Connector' },
+  // Aggiorna le opzioni:
+  const modelOptions = ['gpt-5', 'gpt-4.5', 'claude-4', 'gemini-2.5-pro'];
+
+  const memoryOptions = ['short-memory', 'long-memory'];
+
+  const toolOptions = [
+    'rag',
+    'web-search',
+    'code-interpreter',
+    'api-connector',
+    'mongodb', // AGGIUNTO
   ];
 
   useEffect(() => {
@@ -121,10 +127,10 @@ const AgentNodeConfig = ({ data, onChange }) => {
           onChange={handleModelChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
-          <option value='gpt-4'>GPT-4</option>
-          <option value='gpt-3.5'>GPT-3.5</option>
-          <option value='claude-3'>Claude 3</option>
-          <option value='llama-3'>Llama 3</option>
+          <option value='gpt-5'>GPT-5</option>
+          <option value='gpt-4.5'>GPT-4.5</option>
+          <option value='claude-4'>Claude 4</option>
+          <option value='gemini-2.5-pro'>Gemini 2.5 Pro</option>
         </select>
         <div className='mt-1 text-xs text-gray-500 italic'>
           This will create a separate Model node connected to the Agent.
@@ -144,11 +150,8 @@ const AgentNodeConfig = ({ data, onChange }) => {
           onChange={handleMemoryChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
-          <option value='chat-history'>Chat History</option>
-          <option value='vector-store'>Vector Store</option>
-          <option value='postgres'>Postgres</option>
-          <option value='redis'>Redis</option>
-          <option value='stateless'>Stateless</option>
+          <option value='short-memory'>Short Memory</option>
+          <option value='long-memory'>Long Memory</option>
         </select>
         <div className='mt-1 text-xs text-gray-500 italic'>
           This will create a separate Memory node connected to the Agent.
@@ -344,72 +347,72 @@ const ActionNodeConfig = ({ data, onChange }) => {
   );
 };
 
-const ToolNodeConfig = ({ data, onChange }) => {
-  const [toolType, setToolType] = useState(data?.toolType || 'api');
-  const [config, setConfig] = useState(data?.config || '');
+// const ToolNodeConfig = ({ data, onChange }) => {
+//   const [toolType, setToolType] = useState(data?.toolType || 'api');
+//   const [config, setConfig] = useState(data?.config || '');
 
-  useEffect(() => {
-    if (onChange) {
-      onChange({ ...data, toolType, config });
-    }
-  }, [toolType, config, data, onChange]);
+//   useEffect(() => {
+//     if (onChange) {
+//       onChange({ ...data, toolType, config });
+//     }
+//   }, [toolType, config, data, onChange]);
 
-  const handleToolTypeChange = (e) => {
-    if (e && e.target) {
-      setToolType(e.target.value);
-    }
-  };
+//   const handleToolTypeChange = (e) => {
+//     if (e && e.target) {
+//       setToolType(e.target.value);
+//     }
+//   };
 
-  const handleConfigChange = (e) => {
-    if (e && e.target) {
-      setConfig(e.target.value);
-    }
-  };
+//   const handleConfigChange = (e) => {
+//     if (e && e.target) {
+//       setConfig(e.target.value);
+//     }
+//   };
 
-  return (
-    <div className='space-y-4'>
-      <div>
-        <label
-          htmlFor='toolType'
-          className='block text-sm font-medium text-gray-700 mb-1'
-        >
-          Tool Type
-        </label>
-        <select
-          id='toolType'
-          value={toolType}
-          onChange={handleToolTypeChange}
-          className='w-full p-2 border border-gray-300 rounded-md'
-        >
-          <option value='api'>API Connector</option>
-          <option value='scraper'>Web Scraper</option>
-          <option value='database'>Database Connector</option>
-          <option value='file'>File Processor</option>
-        </select>
-      </div>
+//   return (
+//     <div className='space-y-4'>
+//       <div>
+//         <label
+//           htmlFor='toolType'
+//           className='block text-sm font-medium text-gray-700 mb-1'
+//         >
+//           Tool Type
+//         </label>
+//         <select
+//           id='toolType'
+//           value={toolType}
+//           onChange={handleToolTypeChange}
+//           className='w-full p-2 border border-gray-300 rounded-md'
+//         >
+//           <option value='api'>API Connector</option>
+//           <option value='scraper'>Web Scraper</option>
+//           <option value='database'>Database Connector</option>
+//           <option value='file'>File Processor</option>
+//         </select>
+//       </div>
 
-      <div>
-        <label
-          htmlFor='config'
-          className='block text-sm font-medium text-gray-700 mb-1'
-        >
-          Configuration
-        </label>
-        <textarea
-          id='config'
-          value={config}
-          onChange={handleConfigChange}
-          className='w-full p-2 border border-gray-300 rounded-md'
-          rows={4}
-          placeholder='Add configuration details...'
-        />
-      </div>
-    </div>
-  );
-};
+//       <div>
+//         <label
+//           htmlFor='config'
+//           className='block text-sm font-medium text-gray-700 mb-1'
+//         >
+//           Configuration
+//         </label>
+//         <textarea
+//           id='config'
+//           value={config}
+//           onChange={handleConfigChange}
+//           className='w-full p-2 border border-gray-300 rounded-md'
+//           rows={4}
+//           placeholder='Add configuration details...'
+//         />
+//       </div>
+//     </div>
+//   );
+// };
 
 const ModelNodeConfig = ({ data, onChange }) => {
-  const [modelType, setModelType] = useState(data?.modelType || 'gpt-4');
+  const [modelType, setModelType] = useState(data?.modelType || 'gpt-5');
   const [config, setConfig] = useState(data?.config || '');
 
   useEffect(() => {
@@ -445,10 +448,10 @@ const ModelNodeConfig = ({ data, onChange }) => {
           onChange={handleModelTypeChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
-          <option value='gpt-4'>GPT-4</option>
-          <option value='gpt-3.5'>GPT-3.5</option>
-          <option value='claude-3'>Claude 3</option>
-          <option value='llama-3'>Llama 3</option>
+          <option value='gpt-5'>GPT-5</option>
+          <option value='gpt-4.5'>GPT-4.5</option>
+          <option value='claude-4'>Claude 4</option>
+          <option value='gemini-2.5-pro'>Gemini 2.5 Pro</option>
         </select>
       </div>
 
@@ -474,7 +477,7 @@ const ModelNodeConfig = ({ data, onChange }) => {
 
 const MemoryNodeConfig = ({ data, onChange }) => {
   const [memoryType, setMemoryType] = useState(
-    data?.memoryType || 'chat-history'
+    data?.memoryType || 'short-memory'
   );
   const [config, setConfig] = useState(data?.config || '');
 
@@ -511,11 +514,8 @@ const MemoryNodeConfig = ({ data, onChange }) => {
           onChange={handleMemoryTypeChange}
           className='w-full p-2 border border-gray-300 rounded-md'
         >
-          <option value='chat-history'>Chat History</option>
-          <option value='vector-store'>Vector Store</option>
-          <option value='postgres'>Postgres</option>
-          <option value='redis'>Redis</option>
-          <option value='stateless'>Stateless</option>
+          <option value='short-memory'>Short Memory</option>
+          <option value='long-memory'>Long Memory</option>
         </select>
       </div>
 

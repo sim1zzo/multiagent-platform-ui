@@ -53,8 +53,8 @@ export const CustomNodeCreationModal = ({
   };
 
   // Agent node specific state and handlers
-  const [model, setModel] = useState(initialData.model || 'gpt-4');
-  const [memory, setMemory] = useState(initialData.memory || 'chat-history');
+  const [model, setModel] = useState(initialData.model || 'gpt-5');
+  const [memory, setMemory] = useState(initialData.memory || 'short-memory');
   const [tools, setTools] = useState(initialData.tools || []);
 
   useEffect(() => {
@@ -152,18 +152,15 @@ export const CustomNodeCreationModal = ({
   // Agent form renderer
   const renderAgentForm = () => {
     const modelOptions = [
-      { id: 'gpt-4', label: 'GPT-4' },
-      { id: 'gpt-3.5', label: 'GPT-3.5' },
-      { id: 'claude-3', label: 'Claude 3' },
-      { id: 'llama-3', label: 'Llama 3' },
+      { id: 'gpt-5', label: 'GPT-5' }, // AGGIUNTO
+      { id: 'gpt-4.5', label: 'GPT-4.5' }, // AGGIUNTO
+      { id: 'claude-4', label: 'Claude 4' }, // MODIFICATO da Claude 3
+      { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' }, // AGGIUNTO
     ];
 
     const memoryOptions = [
-      { id: 'chat-history', label: 'Chat History' },
-      { id: 'vector-store', label: 'Vector Store' },
-      { id: 'postgres', label: 'Postgres' },
-      { id: 'redis', label: 'Redis' },
-      { id: 'stateless', label: 'Stateless' },
+      { id: 'short-memory', label: 'Short Memory' }, // MODIFICATO
+      { id: 'long-memory', label: 'Long Memory' }, // MODIFICATO
     ];
 
     const toolOptions = [
@@ -171,6 +168,7 @@ export const CustomNodeCreationModal = ({
       { id: 'web-search', label: 'Web Search' },
       { id: 'code-interpreter', label: 'Code Interpreter' },
       { id: 'api-connector', label: 'API Connector' },
+      { id: 'mongodb', label: 'MongoDB' }, // AGGIUNTO MongoDB
     ];
 
     return (

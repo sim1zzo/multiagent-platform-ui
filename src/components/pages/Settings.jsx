@@ -22,7 +22,7 @@ import {
   AlignCenter,
   Code,
   Workflow,
-  Download // Aggiungiamo l'icona Download qui
+  Download, // Aggiungiamo l'icona Download qui
 } from 'lucide-react';
 
 export const Settings = () => {
@@ -679,10 +679,10 @@ const AISettings = ({
   setUnsavedChanges,
 }) => {
   const [formData, setFormData] = useState({
-    defaultModel: settings.ai?.defaultModel || 'gpt-4',
+    defaultModel: settings.ai?.defaultModel || 'gpt-5',
     temperature: settings.ai?.temperature || 0.7,
     maxTokens: settings.ai?.maxTokens || 2000,
-    defaultMemoryType: settings.ai?.defaultMemoryType || 'chat-history',
+    defaultMemoryType: settings.ai?.defaultMemoryType || 'short-memory',
     apiLimits: settings.ai?.apiLimits || false,
     rateLimit: settings.ai?.rateLimit || 100,
     defaultTools: settings.ai?.defaultTools || [
@@ -763,10 +763,10 @@ const AISettings = ({
                   onChange={handleChange}
                   className='block w-full md:w-64 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white'
                 >
-                  <option value='gpt-4'>GPT-4</option>
-                  <option value='gpt-3.5'>GPT-3.5</option>
-                  <option value='claude-3'>Claude 3</option>
-                  <option value='llama-3'>Llama 3</option>
+                  <option value='gpt-5'>GPT-5</option>
+                  <option value='gpt-4.5'>GPT-4.5</option>
+                  <option value='claude-4'>Claude 4</option>
+                  <option value='gemini-2.5-pro'>Gemini 2.5 Pro</option>
                 </select>
               </div>
 
@@ -840,11 +840,8 @@ const AISettings = ({
                   onChange={handleChange}
                   className='block w-full md:w-64 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white'
                 >
-                  <option value='chat-history'>Chat History</option>
-                  <option value='vector-store'>Vector Store</option>
-                  <option value='postgres'>Postgres</option>
-                  <option value='redis'>Redis</option>
-                  <option value='stateless'>Stateless</option>
+                  <option value='short-memory'>Short Memory</option>
+                  <option value='long-memory'>Long Memory</option>
                 </select>
               </div>
             </div>
