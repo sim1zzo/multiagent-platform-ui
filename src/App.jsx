@@ -1,4 +1,4 @@
-// App.jsx - Import section update
+// App.jsx - Integrated with Memory Analytics
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { WorkspaceManager } from './components/WorkspaceManager';
@@ -16,6 +16,7 @@ import { AgentMemoryVisualization } from './components/visualization/AgentMemory
 import { useWorkflowMarketplace } from './hooks/useWorkflowMarketplace';
 import { Dashboard } from './components/pages/Dashboard';
 import { Analytics } from './components/pages/Analytics';
+import { MemoryAnalytics } from './components/pages/MemoryAnalytics'; // NEW IMPORT
 import { Tools } from './components/pages/Tools';
 import { ToolBuilder } from './components/tools/ToolBuilder';
 import { Simulations } from './components/pages/Simulations';
@@ -80,6 +81,9 @@ const MainApp = () => {
   // Memory visualization state
   const [memoryVisualizationOpen, setMemoryVisualizationOpen] = useState(false);
   const [selectedAgentForMemory, setSelectedAgentForMemory] = useState(null);
+
+  // Memory Analytics state - NEW STATE MANAGEMENT
+  const [memoryAnalyticsOpen, setMemoryAnalyticsOpen] = useState(false);
 
   // UI state
   const [workspaceConfig, setWorkspaceConfig] = useState({
@@ -229,10 +233,6 @@ const MainApp = () => {
       newEdges.push(modelEdge);
       newEdges.push(memoryEdge);
 
-      // =================================================================
-      // RIABILITARE QUESTA SEZIONE - Creazione Tool nodes separati
-      // =================================================================
-
       // Use default tools from settings if none are provided
       const toolsToAdd =
         newNode.tools && newNode.tools.length > 0
@@ -284,12 +284,7 @@ const MainApp = () => {
       // Remove properties from agent node since they're now separate nodes
       delete newNode.model;
       delete newNode.memory;
-      // PUOI decidere se mantenere o cancellare tools:
-      // OPZIONE A: Cancella tools (solo nodi separati)
       delete newNode.tools;
-
-      // OPZIONE B: Mantieni tools (nodi separati + visualizzazione interna)
-      // Non cancellare newNode.tools se vuoi entrambi
     }
 
     setNodes(newNodes);
@@ -343,7 +338,6 @@ const MainApp = () => {
           if (
             sourceNode &&
             (sourceNode.type === 'model' || sourceNode.type === 'memory')
-            // Rimosso: sourceNode.type === 'tool'
           ) {
             nodesToDelete.push(sourceNode.id);
           }
@@ -411,8 +405,6 @@ const MainApp = () => {
           });
           return;
         }
-
-        // Add additional validation rules here if needed
       }
 
       const newEdge = {
@@ -476,6 +468,16 @@ const MainApp = () => {
     setShowToolBuilder(false);
     setEditingTool(null);
   };
+
+  // Memory Analytics handlers - NEW FUNCTIONS
+  const handleOpenMemoryAnalytics = () => {
+    setMemoryAnalyticsOpen(true);
+  };
+
+  const handleCloseMemoryAnalytics = () => {
+    setMemoryAnalyticsOpen(false);
+  };
+
   // Export workspace
   const handleExportWorkflow = () => {
     const workspace = {
@@ -663,6 +665,7 @@ const MainApp = () => {
             <Toolbar
               onNodeCreate={handleInitNodeCreate}
               onOpenMarketplace={openMarketplace}
+              onOpenMemoryAnalytics={handleOpenMemoryAnalytics} // NEW PROP
             />
 
             <WorkspaceManager
@@ -755,6 +758,16 @@ const MainApp = () => {
           onClose={handleCloseMemoryVisualization}
         />
       )}
+
+      {/* Memory Analytics Modal - NEW MODAL */}
+      {memoryAnalyticsOpen && (
+        <div className='fixed inset-0 z-50 overflow-auto'>
+          <div className='min-h-screen'>
+            <MemoryAnalytics onClose={handleCloseMemoryAnalytics} />
+          </div>
+        </div>
+      )}
+
       {/* Tool Builder Modal */}
       {showToolBuilder && (
         <ToolBuilder

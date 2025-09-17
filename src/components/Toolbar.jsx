@@ -1,4 +1,4 @@
-// components/Toolbar.jsx - Updated with Marketplace button
+// components/Toolbar.jsx - Implementazione completa del Memory Analytics
 import React, { useState } from 'react';
 import {
   Power,
@@ -16,7 +16,11 @@ import {
   BarChart2,
 } from 'lucide-react';
 
-export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
+export const Toolbar = ({
+  onNodeCreate,
+  onOpenMarketplace,
+  onOpenMemoryAnalytics,
+}) => {
   const [expanded, setExpanded] = useState(true);
 
   const nodeTypes = [
@@ -48,13 +52,6 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
       description: 'Executes specific tasks or operations',
       color: 'text-green-600',
     },
-    // {
-    //   id: 'tool',
-    //   name: 'Tool Node',
-    //   icon: <Wrench className='w-5 h-5' />,
-    //   description: 'Provides auxiliary functionality',
-    //   color: 'text-yellow-600',
-    // },
   ];
 
   const organizationTools = [
@@ -76,7 +73,7 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
     },
   ];
 
-  // New marketplace button
+  // Marketplace button
   const marketplaceButton = {
     id: 'marketplace',
     name: 'Workflow Marketplace',
@@ -86,12 +83,13 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
     highlight: true,
   };
 
-  // Analytics button
+  // Memory Analytics button - ora completamente funzionante
   const analyticsButton = {
     id: 'analytics',
     name: 'Memory Analytics',
     icon: <BarChart2 className='w-5 h-5' />,
     description: 'View and analyze agent memory',
+    action: onOpenMemoryAnalytics,
     highlight: false,
   };
 
@@ -114,7 +112,7 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
       </div>
 
       <div className='p-2'>
-        {/* Marketplace Feature (New) */}
+        {/* Marketplace Feature */}
         <div className='mb-6'>
           <button
             className={`flex items-center w-full p-2 rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors ${
@@ -140,6 +138,7 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
           </button>
         </div>
 
+        {/* Node Types */}
         <div className='mb-6'>
           <h3
             className={`text-sm font-medium text-gray-700 mb-3 ${
@@ -176,7 +175,7 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
           </div>
         </div>
 
-        {/* Advanced Tools Section with Memory Analytics */}
+        {/* Advanced Tools Section con Memory Analytics funzionante */}
         <div className='mb-6'>
           <h3
             className={`text-sm font-medium text-gray-700 mb-3 ${
@@ -191,6 +190,7 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
               className={`flex items-center w-full p-2 rounded-md hover:bg-gray-100 transition-colors ${
                 expanded ? 'justify-start' : 'justify-center'
               }`}
+              onClick={analyticsButton.action}
               title={!expanded ? analyticsButton.name : undefined}
             >
               <div className='text-purple-600'>{analyticsButton.icon}</div>
@@ -211,6 +211,7 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
           </div>
         </div>
 
+        {/* Organization Tools */}
         <div>
           <h3
             className={`text-sm font-medium text-gray-700 mb-3 ${
