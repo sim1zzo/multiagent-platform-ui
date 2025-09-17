@@ -1,6 +1,6 @@
 // components/modals/CustomNodeCreationModal.jsx
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, FileText } from 'lucide-react';
 
 export const CustomNodeCreationModal = ({
   isOpen,
@@ -15,42 +15,23 @@ export const CustomNodeCreationModal = ({
     ...initialData,
   });
 
+  // System Prompt specific state
+  const [systemPrompt, setSystemPrompt] = useState(
+    initialData.systemPrompt || ''
+  );
+  const [charCount, setCharCount] = useState(
+    (initialData.systemPrompt || '').length
+  );
+
   // Reset form when node type changes
   useEffect(() => {
     setNodeData({
       name: initialData.name || '',
       ...initialData,
     });
+    setSystemPrompt(initialData.systemPrompt || '');
+    setCharCount((initialData.systemPrompt || '').length);
   }, [initialData, nodeType]);
-
-  // Safe update methods that don't rely on DOM direct access
-  const updateName = (value) => {
-    setNodeData((prev) => ({
-      ...prev,
-      name: value,
-    }));
-  };
-
-  const updateCondition = (value) => {
-    setNodeData((prev) => ({
-      ...prev,
-      condition: value,
-    }));
-  };
-
-  const updateTrueLabel = (value) => {
-    setNodeData((prev) => ({
-      ...prev,
-      trueLabel: value,
-    }));
-  };
-
-  const updateFalseLabel = (value) => {
-    setNodeData((prev) => ({
-      ...prev,
-      falseLabel: value,
-    }));
-  };
 
   // Agent node specific state and handlers
   const [model, setModel] = useState(initialData.model || 'gpt-5');
@@ -64,9 +45,10 @@ export const CustomNodeCreationModal = ({
         model,
         memory,
         tools,
+        systemPrompt,
       }));
     }
-  }, [nodeType, model, memory, tools]);
+  }, [nodeType, model, memory, tools, systemPrompt]);
 
   const toggleTool = (toolId) => {
     setTools((current) => {
@@ -77,6 +59,68 @@ export const CustomNodeCreationModal = ({
       }
     });
   };
+
+  const handleSystemPromptChange = (value) => {
+    setSystemPrompt(value);
+    setCharCount(value.length);
+  };
+
+  // Template insertion function
+  const insertTemplate = (templateKey) => {
+    const templates = {
+      'customer-service': `You are a helpful and professional customer service assistant. Your goal is to:
+
+• Provide excellent customer support with a friendly, empathetic tone
+• Listen carefully to customer concerns and provide clear solutions
+• Escalate complex issues to human agents when necessary
+• Always maintain a positive attitude, even with frustrated customers
+• Ask clarifying questions to better understand the customer's needs
+
+Remember to be patient, understanding, and always put the customer's satisfaction first.`,
+
+      'technical-support': `You are a technical support specialist with expertise in troubleshooting and problem-solving. Your responsibilities include:
+
+• Diagnosing technical issues through systematic questioning
+• Providing clear, step-by-step solutions that are easy to follow
+• Explaining technical concepts in simple, understandable terms
+• Documenting common issues and their resolutions
+• Knowing when to escalate complex technical problems
+
+Always be thorough in your analysis and patient in your explanations.`,
+
+      'data-analyst': `You are a data analyst AI assistant specialized in data analysis and insights. Your role includes:
+
+• Analyzing datasets to identify trends, patterns, and anomalies
+• Creating clear visualizations and reports from complex data
+• Providing actionable business insights and recommendations
+• Explaining statistical concepts in business-friendly language
+• Ensuring data accuracy and highlighting any limitations
+
+Focus on delivering valuable insights that drive informed decision-making.`,
+
+      'creative-writer': `You are a creative writing assistant with a flair for storytelling and content creation. Your expertise includes:
+
+• Crafting engaging narratives, articles, and marketing copy
+• Adapting writing style to match brand voice and target audience
+• Generating creative ideas for content campaigns and stories
+• Providing constructive feedback on writing drafts
+• Ensuring content is original, compelling, and error-free
+
+Always prioritize creativity while maintaining professional quality standards.`,
+    };
+
+    const template = templates[templateKey];
+    if (template) {
+      handleSystemPromptChange(template);
+    }
+  };
+
+  // Handle confirm
+  const handleConfirm = () => {
+    onConfirm(nodeData);
+  };
+
+  if (!isOpen) return null;
 
   // Custom form renderer based on node type
   const renderForm = () => {
@@ -100,8 +144,8 @@ export const CustomNodeCreationModal = ({
   const renderTriggerForm = () => {
     const triggerTypes = [
       { id: 'api', label: 'API Call' },
-      { id: 'chat', label: 'Chat Message' },
-      { id: 'workflow', label: 'Workflow Activation' },
+      { id: 'jira', label: 'Jira' },
+      { id: 'kafka', label: 'Kafka' },
     ];
 
     return (
@@ -149,18 +193,18 @@ export const CustomNodeCreationModal = ({
     );
   };
 
-  // Agent form renderer
+  // Agent form renderer - UPDATED WITH SYSTEM PROMPT
   const renderAgentForm = () => {
     const modelOptions = [
-      { id: 'gpt-5', label: 'GPT-5' }, // AGGIUNTO
-      { id: 'gpt-4.5', label: 'GPT-4.5' }, // AGGIUNTO
-      { id: 'claude-4', label: 'Claude 4' }, // MODIFICATO da Claude 3
-      { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' }, // AGGIUNTO
+      { id: 'gpt-5', label: 'GPT-5' },
+      { id: 'gpt-4.5', label: 'GPT-4.5' },
+      { id: 'claude-4', label: 'Claude 4' },
+      { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
     ];
 
     const memoryOptions = [
-      { id: 'short-memory', label: 'Short Memory' }, // MODIFICATO
-      { id: 'long-memory', label: 'Long Memory' }, // MODIFICATO
+      { id: 'short-memory', label: 'Short Memory' },
+      { id: 'long-memory', label: 'Long Memory' },
     ];
 
     const toolOptions = [
@@ -168,11 +212,12 @@ export const CustomNodeCreationModal = ({
       { id: 'web-search', label: 'Web Search' },
       { id: 'code-interpreter', label: 'Code Interpreter' },
       { id: 'api-connector', label: 'API Connector' },
-      { id: 'mongodb', label: 'MongoDB' }, // AGGIUNTO MongoDB
+      { id: 'mongodb', label: 'MongoDB' },
     ];
 
     return (
       <>
+        {/* AI Model Selection */}
         <div className='mb-4'>
           <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             AI Model
@@ -197,6 +242,75 @@ export const CustomNodeCreationModal = ({
           </div>
         </div>
 
+        {/* SYSTEM PROMPT SECTION - NEW */}
+        <div className='mb-4'>
+          <label className='block text-sm font-medium text-gray-700 mb-2 flex items-center'>
+            <FileText className='w-4 h-4 mr-1' />
+            System Prompt
+          </label>
+          <div className='relative'>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => handleSystemPromptChange(e.target.value)}
+              placeholder="Define the agent's role, personality, and instructions. For example: 'You are a helpful customer service assistant. Always be polite and professional when helping customers with their inquiries...'"
+              rows={6}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 resize-none ${
+                charCount > 2000
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-transparent'
+              }`}
+            />
+            <div
+              className={`absolute bottom-2 right-2 text-xs ${
+                charCount > 2000 ? 'text-red-500' : 'text-gray-400'
+              }`}
+            >
+              {charCount} / 2000
+            </div>
+          </div>
+          <p className='text-xs text-gray-500 mt-1'>
+            This prompt defines how your agent will behave and respond to users.
+          </p>
+
+          {/* Quick Prompt Templates */}
+          <div className='mt-2'>
+            <p className='text-xs font-medium text-gray-600 mb-1'>
+              Quick Templates:
+            </p>
+            <div className='flex flex-wrap gap-1'>
+              <button
+                type='button'
+                onClick={() => insertTemplate('customer-service')}
+                className='px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors'
+              >
+                Customer Service
+              </button>
+              <button
+                type='button'
+                onClick={() => insertTemplate('technical-support')}
+                className='px-2 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors'
+              >
+                Technical Support
+              </button>
+              <button
+                type='button'
+                onClick={() => insertTemplate('data-analyst')}
+                className='px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors'
+              >
+                Data Analyst
+              </button>
+              <button
+                type='button'
+                onClick={() => insertTemplate('creative-writer')}
+                className='px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors'
+              >
+                Creative Writer
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Memory Type Selection */}
         <div className='mb-4'>
           <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
             Memory Type
@@ -221,41 +335,26 @@ export const CustomNodeCreationModal = ({
           </div>
         </div>
 
+        {/* Tools Selection */}
         <div className='mb-4'>
-          <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
             Tools
-          </div>
-          <div className='border border-gray-300 rounded-md p-2 space-y-2'>
+          </label>
+          <div className='space-y-2 border border-gray-300 rounded-md p-2'>
             {toolOptions.map((tool) => (
-              <div
-                key={tool.id}
-                className='flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded'
-                onClick={() => toggleTool(tool.id)}
-              >
+              <div key={tool.id} className='flex items-center'>
                 <div
-                  className={`w-4 h-4 mr-2 border border-gray-300 rounded flex items-center justify-center ${
-                    tools.includes(tool.id) ? 'bg-blue-500 border-blue-500' : ''
-                  }`}
+                  className='flex items-center cursor-pointer w-full py-1 px-1 hover:bg-gray-50'
+                  onClick={() => toggleTool(tool.id)}
                 >
-                  {tools.includes(tool.id) && (
-                    <svg
-                      width='10'
-                      height='10'
-                      viewBox='0 0 10 10'
-                      fill='none'
-                      xmlns='http://www.w3.org/2000/svg'
-                    >
-                      <path
-                        d='M8.5 2.5L4 7L1.5 4.5'
-                        stroke='white'
-                        strokeWidth='1.5'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                    </svg>
-                  )}
+                  {/* Custom checkbox appearance */}
+                  <div className='mr-2 h-4 w-4 flex items-center justify-center border border-gray-300 rounded'>
+                    {tools.includes(tool.id) && (
+                      <div className='h-2 w-2 bg-blue-600 rounded-sm'></div>
+                    )}
+                  </div>
+                  <span className='text-sm text-gray-700'>{tool.label}</span>
                 </div>
-                <div className='text-sm'>{tool.label}</div>
               </div>
             ))}
           </div>
@@ -277,9 +376,14 @@ export const CustomNodeCreationModal = ({
             Condition Expression
           </div>
           <textarea
-            className='w-full p-2 border border-gray-300 rounded-md min-h-[100px] text-gray-800'
+            className='w-full p-2 border border-gray-300 rounded-md min-h-[80px]'
             value={nodeData.condition || ''}
-            onChange={(e) => updateCondition(e.target.value)}
+            onChange={(e) =>
+              setNodeData((prev) => ({
+                ...prev,
+                condition: e.target.value,
+              }))
+            }
             placeholder="e.g., {{response.sentiment}} === 'positive'"
           />
         </div>
@@ -291,9 +395,15 @@ export const CustomNodeCreationModal = ({
             </div>
             <input
               type='text'
-              className='w-full p-2 border border-gray-300 rounded-md text-gray-800'
+              className='w-full p-2 border border-gray-300 rounded-md'
               value={nodeData.trueLabel || 'True'}
-              onChange={(e) => updateTrueLabel(e.target.value)}
+              onChange={(e) =>
+                setNodeData((prev) => ({
+                  ...prev,
+                  trueLabel: e.target.value,
+                }))
+              }
+              placeholder='True'
             />
           </div>
 
@@ -303,9 +413,15 @@ export const CustomNodeCreationModal = ({
             </div>
             <input
               type='text'
-              className='w-full p-2 border border-gray-300 rounded-md text-gray-800'
+              className='w-full p-2 border border-gray-300 rounded-md'
               value={nodeData.falseLabel || 'False'}
-              onChange={(e) => updateFalseLabel(e.target.value)}
+              onChange={(e) =>
+                setNodeData((prev) => ({
+                  ...prev,
+                  falseLabel: e.target.value,
+                }))
+              }
+              placeholder='False'
             />
           </div>
         </div>
@@ -352,7 +468,7 @@ export const CustomNodeCreationModal = ({
             Configuration
           </div>
           <textarea
-            className='w-full p-2 border border-gray-300 rounded-md min-h-[100px] text-gray-800'
+            className='w-full p-2 border border-gray-300 rounded-md min-h-[100px]'
             value={nodeData.config || ''}
             onChange={(e) =>
               setNodeData((prev) => ({
@@ -360,61 +476,63 @@ export const CustomNodeCreationModal = ({
                 config: e.target.value,
               }))
             }
-            placeholder='Add configuration details...'
+            placeholder='Configuration details and parameters'
           />
         </div>
       </>
     );
   };
 
-  if (!isOpen) return null;
-
   return (
     <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-      <div className='bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md'>
-        <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
-          <h2 className='text-lg font-medium'>
+      <div className='bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto'>
+        {/* Header */}
+        <div className='flex justify-between items-center mb-4'>
+          <h2 className='text-xl font-semibold text-gray-800'>
             Configure{' '}
-            {nodeType && nodeType.charAt(0).toUpperCase() + nodeType.slice(1)}{' '}
+            {nodeType
+              ? nodeType.charAt(0).toUpperCase() + nodeType.slice(1)
+              : ''}{' '}
             Node
           </h2>
           <button
-            className='text-gray-500 hover:text-gray-700'
             onClick={onCancel}
+            className='text-gray-500 hover:text-gray-700'
           >
-            <X className='w-5 h-5' />
+            <X size={24} />
           </button>
         </div>
 
-        <div className='p-4'>
-          <div className='mb-4'>
-            <div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-              Node Name
-            </div>
-            <input
-              type='text'
-              className='w-full p-2 border border-gray-300 rounded-md text-gray-800'
-              value={nodeData.name || ''}
-              onChange={(e) => updateName(e.target.value)}
-              placeholder='Enter node name...'
-            />
+        {/* Name Field - Always Present */}
+        <div className='mb-4'>
+          <div className='block text-sm font-medium text-gray-700 mb-1'>
+            Node Name
           </div>
-
-          {renderForm()}
+          <input
+            type='text'
+            className='w-full p-2 border border-gray-300 rounded-md'
+            value={nodeData.name}
+            onChange={(e) =>
+              setNodeData((prev) => ({ ...prev, name: e.target.value }))
+            }
+            placeholder='Enter node name...'
+          />
         </div>
 
-        <div className='flex justify-end p-4 border-t border-gray-200 dark:border-gray-700 space-x-3'>
+        {/* Dynamic Form Content */}
+        {renderForm()}
+
+        {/* Footer */}
+        <div className='flex justify-end space-x-3 mt-6'>
           <button
-            type='button'
-            className='px-4 py-2 mr-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50'
             onClick={onCancel}
+            className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
           >
             Cancel
           </button>
           <button
-            type='button'
-            className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
-            onClick={() => onConfirm(nodeData)}
+            onClick={handleConfirm}
+            className='px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700'
           >
             Create Node
           </button>

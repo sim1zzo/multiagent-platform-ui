@@ -1481,7 +1481,7 @@ const IntegrationsSettings = ({
 }) => {
   const [integrations, setIntegrations] = useState(
     settings.integrations || {
-      slack: { enabled: false, webhook: '' },
+      slack: { enabled: false, Jira: '' },
       github: { enabled: false, token: '' },
       jira: { enabled: false, domain: '', apiKey: '' },
       aws: { enabled: false, accessKey: '', secretKey: '' },

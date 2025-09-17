@@ -40,8 +40,8 @@ const TriggerNodeConfig = ({ data, onChange }) => {
           className='w-full p-2 border border-gray-300 rounded-md'
         >
           <option value='api'>API Call</option>
-          <option value='chat'>Chat Message</option>
-          <option value='workflow'>Workflow Activation</option>
+          <option value='chat'>Jira</option>
+          <option value='kafka'>Kafka</option>
         </select>
       </div>
 

@@ -503,7 +503,7 @@ class ToolService {
         created: '2024-08-15',
         lastModified: '2024-12-12',
         author: 'System',
-        tags: ['api', 'integration', 'rest', 'webhook', 'http'],
+        tags: ['api', 'integration', 'rest', 'Jira', 'http'],
         version: '1.4.0',
         parameters: {
           url: {

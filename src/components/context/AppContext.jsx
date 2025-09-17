@@ -56,7 +56,7 @@ const initialSettings = {
   },
   preferences: {
     theme: 'light',
-    defaultView: 'workflow',
+    defaultView: 'kafka',
     autoSave: true,
     saveInterval: 5, // minutes
     gridSize: 20,
@@ -86,7 +86,7 @@ const initialSettings = {
     defaultTools: ['web-search', 'code-interpreter']
   },
   integrations: {
-    slack: { enabled: false, webhook: '' },
+    slack: { enabled: false, Jira: '' },
     github: { enabled: false, token: '' },
     jira: { enabled: false, domain: '', apiKey: '' },
     aws: { enabled: false, accessKey: '', secretKey: '' },
