@@ -16,6 +16,8 @@ import { AgentMemoryVisualization } from './components/visualization/AgentMemory
 import { useWorkflowMarketplace } from './hooks/useWorkflowMarketplace';
 import { Dashboard } from './components/pages/Dashboard';
 import { Analytics } from './components/pages/Analytics';
+import { Tools } from './components/pages/Tools';
+import { ToolBuilder } from './components/tools/ToolBuilder';
 import { Simulations } from './components/pages/Simulations';
 import ConversationFlowVisualizer from './components/visualization/ConversationFlowVisualizer';
 
@@ -69,6 +71,11 @@ const MainApp = () => {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
+
+  // Tools management state
+  const [showToolBuilder, setShowToolBuilder] = useState(false);
+  const [editingTool, setEditingTool] = useState(null);
+  const [toolBuilderMode, setToolBuilderMode] = useState('create');
 
   // Memory visualization state
   const [memoryVisualizationOpen, setMemoryVisualizationOpen] = useState(false);
@@ -439,6 +446,36 @@ const MainApp = () => {
     });
   };
 
+  // Tool management functions
+  const handleCreateTool = () => {
+    setEditingTool(null);
+    setToolBuilderMode('create');
+    setShowToolBuilder(true);
+  };
+
+  const handleEditTool = (tool) => {
+    setEditingTool(tool);
+    setToolBuilderMode('edit');
+    setShowToolBuilder(true);
+  };
+
+  const handleSaveTool = (toolData) => {
+    setNotificationModal({
+      isOpen: true,
+      message: `Tool ${
+        toolBuilderMode === 'create' ? 'created' : 'updated'
+      } successfully!`,
+      type: 'success',
+    });
+
+    setShowToolBuilder(false);
+    setEditingTool(null);
+  };
+
+  const handleCancelToolBuilder = () => {
+    setShowToolBuilder(false);
+    setEditingTool(null);
+  };
   // Export workspace
   const handleExportWorkflow = () => {
     const workspace = {
@@ -613,6 +650,10 @@ const MainApp = () => {
         return <Simulations />;
       case 'settings':
         return <Settings />;
+      case 'tools':
+        return (
+          <Tools onCreateTool={handleCreateTool} onEditTool={handleEditTool} />
+        );
       case 'profile':
         return <Profile />;
       case 'workflow':
@@ -667,7 +708,7 @@ const MainApp = () => {
         navigateTo={navigateTo}
         activePage={activePage}
         userName={user.name}
-        userInitials={user.initials}
+        userInitials={user}
         onLogout={handleLogout}
       />
 
@@ -712,6 +753,15 @@ const MainApp = () => {
         <AgentMemoryVisualization
           agentId={selectedAgentForMemory}
           onClose={handleCloseMemoryVisualization}
+        />
+      )}
+      {/* Tool Builder Modal */}
+      {showToolBuilder && (
+        <ToolBuilder
+          tool={editingTool}
+          mode={toolBuilderMode}
+          onSave={handleSaveTool}
+          onCancel={handleCancelToolBuilder}
         />
       )}
     </div>

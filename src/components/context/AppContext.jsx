@@ -1,4 +1,4 @@
-// context/AppContext.jsx
+// context/AppContext.jsx - Updated with Tools support
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Create context
@@ -33,8 +33,18 @@ const initialUserProfile = {
   ],
 };
 
-// Initial settings
+// Initial settings - with Tools support and backwards compatibility
 const initialSettings = {
+  // Backwards compatibility: add appearance section that maps to preferences
+  appearance: {
+    get darkMode() {
+      return this._theme === 'dark';
+    },
+    set darkMode(value) {
+      this._theme = value ? 'dark' : 'light';
+    },
+    _theme: 'light'
+  },
   account: {
     notifications: {
       email: true,
@@ -56,6 +66,15 @@ const initialSettings = {
     fontSize: 'medium',
     confirmNodeDeletion: true,
     maxUndoSteps: 20,
+  },
+  // New tools settings
+  tools: {
+    autoValidate: true,
+    showCodeHints: true,
+    defaultTimeout: 30000,
+    maxRetries: 3,
+    enableTesting: true,
+    autoSaveCode: true
   },
   ai: {
     defaultModel: 'gpt-4',
@@ -82,7 +101,10 @@ const initialSettings = {
       workflow_completed: true,
       workflow_error: true,
       agent_created: false,
-      system_updates: true
+      system_updates: true,
+      tool_created: true, // New tool events
+      tool_updated: false,
+      tool_deleted: false
     }
   },
   security: {
@@ -103,10 +125,26 @@ export const AppProvider = ({ children }) => {
     return savedProfile ? JSON.parse(savedProfile) : initialUserProfile;
   });
 
-  // Settings state
+  // Settings state with proper initialization
   const [settings, setSettings] = useState(() => {
     const savedSettings = localStorage.getItem('app-settings');
-    return savedSettings ? JSON.parse(savedSettings) : initialSettings;
+    const loadedSettings = savedSettings ? JSON.parse(savedSettings) : initialSettings;
+    
+    // Ensure backwards compatibility - sync theme with darkMode
+    if (loadedSettings.preferences?.theme) {
+      loadedSettings.appearance = {
+        ...loadedSettings.appearance,
+        darkMode: loadedSettings.preferences.theme === 'dark'
+      };
+    }
+    
+    return loadedSettings;
+  });
+
+  // Tools state
+  const [tools, setTools] = useState(() => {
+    const savedTools = localStorage.getItem('multiagent-tools');
+    return savedTools ? JSON.parse(savedTools) : [];
   });
 
   // Persist user profile changes
@@ -114,10 +152,23 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('user-profile', JSON.stringify(userProfile));
   }, [userProfile]);
 
-  // Persist settings changes
+  // Persist settings changes with theme sync
   useEffect(() => {
-    localStorage.setItem('app-settings', JSON.stringify(settings));
+    // Sync appearance.darkMode with preferences.theme for backwards compatibility
+    const syncedSettings = {
+      ...settings,
+      preferences: {
+        ...settings.preferences,
+        theme: settings.appearance?.darkMode ? 'dark' : 'light'
+      }
+    };
+    localStorage.setItem('app-settings', JSON.stringify(syncedSettings));
   }, [settings]);
+
+  // Persist tools changes
+  useEffect(() => {
+    localStorage.setItem('multiagent-tools', JSON.stringify(tools));
+  }, [tools]);
 
   // Update user profile
   const updateUserProfile = (updates) => {
@@ -127,15 +178,27 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
-  // Update settings
+  // Update settings with theme sync
   const updateSettings = (category, updates) => {
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [category]: {
-        ...prevSettings[category],
-        ...updates,
-      },
-    }));
+    setSettings((prevSettings) => {
+      const newSettings = {
+        ...prevSettings,
+        [category]: {
+          ...prevSettings[category],
+          ...updates,
+        },
+      };
+
+      // Special handling for appearance category to sync with preferences.theme
+      if (category === 'appearance' && updates.darkMode !== undefined) {
+        newSettings.preferences = {
+          ...newSettings.preferences,
+          theme: updates.darkMode ? 'dark' : 'light'
+        };
+      }
+
+      return newSettings;
+    });
   };
 
   // Update specific nested setting
@@ -174,8 +237,79 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Context value
+  // Tool management functions
+  const addTool = (tool) => {
+    const newTool = {
+      ...tool,
+      id: tool.id || `tool-${Date.now()}`,
+      created: tool.created || new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+      usageCount: 0,
+      isActive: tool.isActive !== undefined ? tool.isActive : true,
+      isFavorite: tool.isFavorite || false
+    };
+    setTools(prevTools => [...prevTools, newTool]);
+    return newTool;
+  };
+
+  const updateTool = (toolId, updates) => {
+    setTools(prevTools => 
+      prevTools.map(tool => 
+        tool.id === toolId 
+          ? { 
+              ...tool, 
+              ...updates, 
+              lastModified: new Date().toISOString() 
+            }
+          : tool
+      )
+    );
+  };
+
+  const deleteTool = (toolId) => {
+    setTools(prevTools => prevTools.filter(tool => tool.id !== toolId));
+  };
+
+  const duplicateTool = (toolId) => {
+    const tool = tools.find(t => t.id === toolId);
+    if (tool) {
+      const duplicatedTool = {
+        ...tool,
+        id: `tool-${Date.now()}`,
+        name: `${tool.name} (Copy)`,
+        created: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+        usageCount: 0
+      };
+      setTools(prevTools => [...prevTools, duplicatedTool]);
+      return duplicatedTool;
+    }
+    return null;
+  };
+
+  const toggleToolFavorite = (toolId) => {
+    setTools(prevTools =>
+      prevTools.map(tool =>
+        tool.id === toolId
+          ? { ...tool, isFavorite: !tool.isFavorite }
+          : tool
+      )
+    );
+  };
+
+  const toggleToolActive = (toolId) => {
+    setTools(prevTools =>
+      prevTools.map(tool =>
+        tool.id === toolId
+          ? { ...tool, isActive: !tool.isActive }
+          : tool
+      )
+    );
+  };
+
+  // Context value - extended with tools support
   const value = {
+    // Existing functionality
     activePage,
     userProfile,
     settings,
@@ -183,7 +317,25 @@ export const AppProvider = ({ children }) => {
     updateUserProfile,
     updateSettings,
     updateNestedSetting,
-    resetSettings
+    resetSettings,
+    
+    // New tools functionality
+    tools,
+    addTool,
+    updateTool,
+    deleteTool,
+    duplicateTool,
+    toggleToolFavorite,
+    toggleToolActive,
+    
+    // Utility functions
+    formatDate: (dateString) => {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -1,5 +1,6 @@
-// components/Header.jsx - Updated with reduced logo gap
+// src/components/Header.jsx - Integrated version with Tools tab and all existing features
 import React, { useState, useRef, useEffect } from 'react';
+import { useApp } from './context/AppContext';
 import {
   Save,
   Upload,
@@ -15,6 +16,7 @@ import {
   Trash,
   Download,
   Store,
+  Wrench, // New icon for Tools
 } from 'lucide-react';
 
 export const Header = ({
@@ -22,39 +24,46 @@ export const Header = ({
   onLoad,
   onExport,
   onReset,
+  onClear,
   onOpenMarketplace,
-  darkMode,
-  toggleDarkMode,
-  navigateTo,
-  activePage,
-  userName = 'User',
-  userInitials = '',
+  user,
   onLogout,
 }) => {
+  const { activePage, navigateTo, settings, updateSettings } = useApp();
+  const darkMode = settings?.preferences?.theme === 'dark' || false;
+
+  // State for dropdowns and menus
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
     {
       id: 1,
+      message: "New tool 'Web Scraper' has been created successfully",
+      read: false,
+      time: '15m ago',
+    },
+    {
+      id: 2,
       message: "Workflow 'Customer Onboarding' has been completed",
       read: false,
       time: '20m ago',
     },
     {
-      id: 2,
+      id: 3,
       message: "New agent template available: 'Advanced Data Analysis'",
       read: false,
       time: '1h ago',
     },
     {
-      id: 3,
+      id: 4,
       message: 'System update scheduled for tomorrow',
       read: true,
       time: '2d ago',
     },
   ]);
 
+  // Refs for handling outside clicks
   const userMenuRef = useRef(null);
   const settingsMenuRef = useRef(null);
   const notificationsRef = useRef(null);
@@ -85,25 +94,46 @@ export const Header = ({
     };
   }, []);
 
-  // Count unread notifications
+  // Navigation handler
+  const handleNavigate = (page) => {
+    if (navigateTo) {
+      navigateTo(page);
+    }
+    setShowUserMenu(false);
+    setShowSettingsMenu(false);
+  };
+
+  // Dark mode toggle
+  const toggleDarkMode = () => {
+    if (updateSettings && settings?.preferences) {
+      const newTheme = darkMode ? 'light' : 'dark';
+      updateSettings('preferences', {
+        ...settings.preferences,
+        theme: newTheme,
+      });
+    }
+  };
+
+  // Notification functions
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Mark all notifications as read
   const markAllAsRead = () => {
     setNotifications(notifications.map((n) => ({ ...n, read: true })));
   };
 
-  // Clear all notifications
   const clearAllNotifications = () => {
     setNotifications([]);
   };
 
-  // Handle navigation and close menus
-  const handleNavigate = (page) => {
-    navigateTo(page);
-    setShowUserMenu(false);
-    setShowSettingsMenu(false);
-  };
+  // User info
+  const userName = user?.name || user?.email || 'User';
+  const userInitials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+    : 'U';
 
   return (
     <header
@@ -111,22 +141,22 @@ export const Header = ({
         darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       } shadow-sm`}
     >
+      {/* Left Side - Logo and Navigation */}
       <div className='flex items-center'>
         <div className='flex items-center mr-8'>
-          {/* Reply Sense Logo - Reduced right margin */}
+          {/* Reply Sense Logo */}
           <div className='h-10 mr-0'>
-            <img 
-              src="/reply_sense_logo.png" 
-              alt="Reply Sense Logo" 
-              className="h-full"
+            <img
+              src='/reply_sense_logo.png'
+              alt='Reply Sense Logo'
+              className='h-full'
               onError={(e) => {
-                // Fallback if image fails to load
                 e.target.style.display = 'none';
               }}
             />
           </div>
-          
-          {/* MultiAgent Workflow with icon - Reduced left margin */}
+
+          {/* MultiAgent Workflow with icon */}
           <div className='flex items-center ml-0'>
             <div className='w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white mr-2'>
               <Brain className='w-5 h-5' />
@@ -142,6 +172,7 @@ export const Header = ({
           </div>
         </div>
 
+        {/* Navigation Tabs */}
         <nav className='hidden md:flex items-center space-x-6'>
           <button
             className={`${
@@ -156,48 +187,97 @@ export const Header = ({
                       ? 'text-gray-300 hover:text-blue-400'
                       : 'text-gray-600 hover:text-blue-600'
                   }`
-            } text-sm font-medium`}
+            } text-sm font-medium transition-colors`}
             onClick={() => handleNavigate('workflow')}
           >
             Workflow Builder
           </button>
+
+          {/* NEW TOOLS TAB */}
           <button
             className={`${
-              darkMode
-                ? 'text-gray-300 hover:text-blue-400'
-                : 'text-gray-600 hover:text-blue-600'
-            } text-sm font-medium`}
+              activePage === 'tools'
+                ? `${
+                    darkMode
+                      ? 'text-blue-400 border-blue-400'
+                      : 'text-blue-600 border-blue-600'
+                  } border-b-2 pb-1`
+                : `${
+                    darkMode
+                      ? 'text-gray-300 hover:text-blue-400'
+                      : 'text-gray-600 hover:text-blue-600'
+                  }`
+            } text-sm font-medium flex items-center transition-colors`}
+            onClick={() => handleNavigate('tools')}
+          >
+            <Wrench className='w-4 h-4 mr-1' />
+            Tools
+          </button>
+
+          <button
+            className={`${
+              activePage === 'dashboard'
+                ? `${
+                    darkMode
+                      ? 'text-blue-400 border-blue-400'
+                      : 'text-blue-600 border-blue-600'
+                  } border-b-2 pb-1`
+                : `${
+                    darkMode
+                      ? 'text-gray-300 hover:text-blue-400'
+                      : 'text-gray-600 hover:text-blue-600'
+                  }`
+            } text-sm font-medium transition-colors`}
             onClick={() => handleNavigate('dashboard')}
           >
             Dashboard
           </button>
+
           <button
             className={`${
-              darkMode
-                ? 'text-gray-300 hover:text-blue-400'
-                : 'text-gray-600 hover:text-blue-600'
-            } text-sm font-medium`}
+              activePage === 'simulations'
+                ? `${
+                    darkMode
+                      ? 'text-blue-400 border-blue-400'
+                      : 'text-blue-600 border-blue-600'
+                  } border-b-2 pb-1`
+                : `${
+                    darkMode
+                      ? 'text-gray-300 hover:text-blue-400'
+                      : 'text-gray-600 hover:text-blue-600'
+                  }`
+            } text-sm font-medium transition-colors`}
             onClick={() => handleNavigate('simulations')}
           >
             Simulations
           </button>
+
           <button
             className={`${
-              darkMode
-                ? 'text-gray-300 hover:text-blue-400'
-                : 'text-gray-600 hover:text-blue-600'
-            } text-sm font-medium`}
+              activePage === 'analytics'
+                ? `${
+                    darkMode
+                      ? 'text-blue-400 border-blue-400'
+                      : 'text-blue-600 border-blue-600'
+                  } border-b-2 pb-1`
+                : `${
+                    darkMode
+                      ? 'text-gray-300 hover:text-blue-400'
+                      : 'text-gray-600 hover:text-blue-600'
+                  }`
+            } text-sm font-medium transition-colors`}
             onClick={() => handleNavigate('analytics')}
           >
             Analytics
           </button>
-          {/* New Marketplace button in navigation */}
+
+          {/* Marketplace button in navigation */}
           <button
             className={`flex items-center ${
               darkMode
                 ? 'text-gray-300 hover:text-blue-400'
                 : 'text-gray-600 hover:text-blue-600'
-            } text-sm font-medium`}
+            } text-sm font-medium transition-colors`}
             onClick={onOpenMarketplace}
           >
             <Store className='w-4 h-4 mr-1' />
@@ -206,8 +286,9 @@ export const Header = ({
         </nav>
       </div>
 
+      {/* Right Side - Actions and User Controls */}
       <div className='flex items-center space-x-2'>
-        {/* Only show workflow actions on the workflow page */}
+        {/* Workflow-specific actions */}
         {activePage === 'workflow' && (
           <div
             className={`flex items-center border-r ${
@@ -257,23 +338,25 @@ export const Header = ({
                   ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
                   : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
               } rounded-md transition-colors`}
-              onClick={onExport}
-              title='Export Workflow'
+              onClick={onExport || onClear}
+              title={onExport ? 'Export Workflow' : 'Clear Workspace'}
             >
               <Download className='w-5 h-5' />
             </button>
 
-            <button
-              className={`p-2 ${
-                darkMode
-                  ? 'text-gray-300 hover:text-red-400 hover:bg-gray-700'
-                  : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
-              } rounded-md transition-colors`}
-              onClick={onReset}
-              title='Reset Workflow'
-            >
-              <Trash className='w-5 h-5' />
-            </button>
+            {onReset && (
+              <button
+                className={`p-2 ${
+                  darkMode
+                    ? 'text-gray-300 hover:text-red-400 hover:bg-gray-700'
+                    : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+                } rounded-md transition-colors`}
+                onClick={onReset}
+                title='Reset Workflow'
+              >
+                <Trash className='w-5 h-5' />
+              </button>
+            )}
           </div>
         )}
 
@@ -302,7 +385,7 @@ export const Header = ({
                 darkMode
                   ? 'bg-gray-800 border-gray-700'
                   : 'bg-white border-gray-200'
-              } border rounded-md shadow-lg z-10`}
+              } border rounded-md shadow-lg z-50`}
             >
               <div
                 className={`flex items-center justify-between border-b ${
@@ -322,7 +405,7 @@ export const Header = ({
                       darkMode
                         ? 'text-blue-400 hover:text-blue-300'
                         : 'text-blue-600 hover:text-blue-800'
-                    }`}
+                    } transition-colors`}
                     onClick={markAllAsRead}
                   >
                     Mark all as read
@@ -332,7 +415,7 @@ export const Header = ({
                       darkMode
                         ? 'text-gray-400 hover:text-gray-300'
                         : 'text-gray-600 hover:text-gray-800'
-                    }`}
+                    } transition-colors`}
                     onClick={clearAllNotifications}
                   >
                     Clear all
@@ -353,11 +436,11 @@ export const Header = ({
                           : darkMode
                           ? 'bg-gray-700'
                           : 'bg-blue-50'
-                      } hover:bg-${
-                        darkMode ? 'gray-700' : 'gray-50'
+                      } hover:${
+                        darkMode ? 'bg-gray-700' : 'bg-gray-50'
                       } border-b ${
                         darkMode ? 'border-gray-700' : 'border-gray-100'
-                      } last:border-b-0`}
+                      } last:border-b-0 transition-colors`}
                     >
                       <div
                         className={`text-sm ${
@@ -409,7 +492,7 @@ export const Header = ({
                 darkMode
                   ? 'bg-gray-800 border-gray-700'
                   : 'bg-white border-gray-200'
-              } border rounded-md shadow-lg z-10`}
+              } border rounded-md shadow-lg z-50`}
             >
               <div className='py-1'>
                 <button
@@ -418,7 +501,7 @@ export const Header = ({
                     darkMode
                       ? 'text-gray-200 hover:bg-gray-700'
                       : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  } transition-colors`}
                 >
                   <Settings className='w-4 h-4 mr-2' />
                   Settings
@@ -428,7 +511,7 @@ export const Header = ({
                     darkMode
                       ? 'text-gray-200 hover:bg-gray-700'
                       : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  } transition-colors`}
                   onClick={toggleDarkMode}
                 >
                   {darkMode ? (
@@ -448,6 +531,7 @@ export const Header = ({
           )}
         </div>
 
+        {/* Help button */}
         <button
           className={`p-2 ${
             darkMode
@@ -459,88 +543,91 @@ export const Header = ({
           <HelpCircle className='w-5 h-5' />
         </button>
 
+        {/* Divider */}
         <div
           className={`h-8 w-px ${
             darkMode ? 'bg-gray-700' : 'bg-gray-200'
           } mx-2`}
-        ></div>
+        />
 
         {/* User menu */}
-        <div className='relative' ref={userMenuRef}>
-          <button
-            className={`flex items-center text-sm font-medium ${
-              darkMode
-                ? 'text-gray-200 hover:text-blue-400'
-                : 'text-gray-700 hover:text-blue-600'
-            }`}
-            onClick={() => setShowUserMenu(!showUserMenu)}
-          >
-            <div className='w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-2 text-white font-medium'>
-              {userInitials || <User className='w-4 h-4' />}
-            </div>
-            <span className='hidden md:inline'>{userName}</span>
-            <ChevronDown className='w-4 h-4 ml-1' />
-          </button>
-
-          {showUserMenu && (
-            <div
-              className={`absolute right-0 mt-2 w-48 ${
+        {user && (
+          <div className='relative' ref={userMenuRef}>
+            <button
+              className={`flex items-center text-sm font-medium ${
                 darkMode
-                  ? 'bg-gray-800 border-gray-700'
-                  : 'bg-white border-gray-200'
-              } border rounded-md shadow-lg z-10`}
+                  ? 'text-gray-200 hover:text-blue-400'
+                  : 'text-gray-700 hover:text-blue-600'
+              } transition-colors`}
+              onClick={() => setShowUserMenu(!showUserMenu)}
             >
-              <div className='py-1'>
-                <button
-                  onClick={() => handleNavigate('profile')}
-                  className={`block w-full text-left px-4 py-2 text-sm ${
-                    darkMode
-                      ? 'text-gray-200 hover:bg-gray-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Your Profile
-                </button>
-                <button
-                  onClick={() => handleNavigate('projects')}
-                  className={`block w-full text-left px-4 py-2 text-sm ${
-                    darkMode
-                      ? 'text-gray-200 hover:bg-gray-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Your Projects
-                </button>
-                <button
-                  onClick={() => handleNavigate('api-keys')}
-                  className={`block w-full text-left px-4 py-2 text-sm ${
-                    darkMode
-                      ? 'text-gray-200 hover:bg-gray-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  API Keys
-                </button>
-                <hr
-                  className={`my-1 ${
-                    darkMode ? 'border-gray-700' : 'border-gray-200'
-                  }`}
-                />
-                <button
-                  onClick={onLogout}
-                  className={`flex items-center w-full text-left px-4 py-2 text-sm ${
-                    darkMode
-                      ? 'text-red-400 hover:bg-gray-700'
-                      : 'text-red-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <LogOut className='w-4 h-4 mr-2' />
-                  Sign out
-                </button>
+              <div className='w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-2 text-white font-medium'>
+                {userInitials || <User className='w-4 h-4' />}
               </div>
-            </div>
-          )}
-        </div>
+              <span className='hidden md:inline'>{userName}</span>
+              <ChevronDown className='w-4 h-4 ml-1' />
+            </button>
+
+            {showUserMenu && (
+              <div
+                className={`absolute right-0 mt-2 w-48 ${
+                  darkMode
+                    ? 'bg-gray-800 border-gray-700'
+                    : 'bg-white border-gray-200'
+                } border rounded-md shadow-lg z-50`}
+              >
+                <div className='py-1'>
+                  <button
+                    onClick={() => handleNavigate('profile')}
+                    className={`block w-full text-left px-4 py-2 text-sm ${
+                      darkMode
+                        ? 'text-gray-200 hover:bg-gray-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    } transition-colors`}
+                  >
+                    Your Profile
+                  </button>
+                  <button
+                    onClick={() => handleNavigate('projects')}
+                    className={`block w-full text-left px-4 py-2 text-sm ${
+                      darkMode
+                        ? 'text-gray-200 hover:bg-gray-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    } transition-colors`}
+                  >
+                    Your Projects
+                  </button>
+                  <button
+                    onClick={() => handleNavigate('api-keys')}
+                    className={`block w-full text-left px-4 py-2 text-sm ${
+                      darkMode
+                        ? 'text-gray-200 hover:bg-gray-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    } transition-colors`}
+                  >
+                    API Keys
+                  </button>
+                  <hr
+                    className={`my-1 ${
+                      darkMode ? 'border-gray-700' : 'border-gray-200'
+                    }`}
+                  />
+                  <button
+                    onClick={onLogout}
+                    className={`flex items-center w-full text-left px-4 py-2 text-sm ${
+                      darkMode
+                        ? 'text-red-400 hover:bg-gray-700'
+                        : 'text-red-600 hover:bg-gray-100'
+                    } transition-colors`}
+                  >
+                    <LogOut className='w-4 h-4 mr-2' />
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
