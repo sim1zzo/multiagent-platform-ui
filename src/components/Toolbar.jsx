@@ -48,13 +48,13 @@ export const Toolbar = ({ onNodeCreate, onOpenMarketplace }) => {
       description: 'Executes specific tasks or operations',
       color: 'text-green-600',
     },
-    {
-      id: 'tool',
-      name: 'Tool Node',
-      icon: <Wrench className='w-5 h-5' />,
-      description: 'Provides auxiliary functionality',
-      color: 'text-yellow-600',
-    },
+    // {
+    //   id: 'tool',
+    //   name: 'Tool Node',
+    //   icon: <Wrench className='w-5 h-5' />,
+    //   description: 'Provides auxiliary functionality',
+    //   color: 'text-yellow-600',
+    // },
   ];
 
   const organizationTools = [
