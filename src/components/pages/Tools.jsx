@@ -1,5 +1,5 @@
-// src/components/pages/Tools.jsx - Fixed and cleaned version
-import React, { useState } from 'react';
+// src/components/pages/Tools.jsx - Integrated with ToolService
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Plus,
@@ -24,136 +24,54 @@ import {
   StarOff,
   Menu,
 } from 'lucide-react';
+// NUOVO IMPORT
+import ToolService from '../../services/ToolService';
 
-// Mock data per i tool (mantengo i dati esistenti)
-const mockTools = [
-  {
-    id: 'tool-1',
-    name: 'Web Scraper',
-    description: 'Extracts data from websites with intelligent parsing',
-    category: 'Data Collection',
-    type: 'API',
-    version: '1.2.0',
-    author: 'System',
-    created: '2024-12-15',
-    lastModified: '2024-12-20',
-    isActive: true,
-    isFavorite: false,
-    usageCount: 45,
-    tags: ['web', 'scraping', 'data'],
-    config: {
-      url: 'string',
-      selectors: 'array',
-      timeout: 'number',
-    },
-    icon: Globe,
-    color: 'text-blue-600',
-  },
-  {
-    id: 'tool-2',
-    name: 'Database Query',
-    description: 'Execute SQL queries across multiple database types',
-    category: 'Database',
-    type: 'SQL',
-    version: '2.0.1',
-    author: 'Admin',
-    created: '2024-11-20',
-    lastModified: '2024-12-18',
-    isActive: true,
-    isFavorite: true,
-    usageCount: 128,
-    tags: ['database', 'sql', 'query'],
-    config: {
-      connection: 'string',
-      query: 'string',
-      parameters: 'object',
-    },
-    icon: Database,
-    color: 'text-green-600',
-  },
-  {
-    id: 'tool-3',
-    name: 'Text Analyzer',
-    description: 'Advanced NLP processing for text analysis and sentiment',
-    category: 'AI/ML',
-    type: 'Python',
-    version: '1.5.2',
-    author: 'Simone Izzo',
-    created: '2024-10-12',
-    lastModified: '2024-12-19',
-    isActive: true,
-    isFavorite: false,
-    usageCount: 89,
-    tags: ['nlp', 'sentiment', 'analysis'],
-    config: {
-      text: 'string',
-      language: 'string',
-      features: 'array',
-    },
-    icon: MessageSquare,
-    color: 'text-purple-600',
-  },
-  {
-    id: 'tool-4',
-    name: 'Image Generator',
-    description: 'Generate images using AI models with custom prompts',
-    category: 'AI/ML',
-    type: 'API',
-    version: '1.0.0',
-    author: 'Antonio Capone',
-    created: '2024-12-01',
-    lastModified: '2024-12-15',
-    isActive: false,
-    isFavorite: false,
-    usageCount: 23,
-    tags: ['ai', 'image', 'generation'],
-    config: {
-      prompt: 'string',
-      style: 'string',
-      resolution: 'string',
-    },
-    icon: Image,
-    color: 'text-pink-600',
-  },
-  {
-    id: 'tool-5',
-    name: 'Math Calculator',
-    description: 'Advanced mathematical computations and formula evaluation',
-    category: 'Utilities',
-    type: 'JavaScript',
-    version: '1.1.0',
-    author: 'System',
-    created: '2024-09-15',
-    lastModified: '2024-11-30',
-    isActive: true,
-    isFavorite: true,
-    usageCount: 67,
-    tags: ['math', 'calculation', 'formula'],
-    config: {
-      expression: 'string',
-      precision: 'number',
-    },
-    icon: Calculator,
-    color: 'text-orange-600',
-  },
-];
+// Icon mapping per i tool
+const getToolIcon = (category) => {
+  switch (category) {
+    case 'Data Collection':
+      return Globe;
+    case 'Database':
+      return Database;
+    case 'AI/ML':
+      return Cpu;
+    case 'Information':
+      return MessageSquare;
+    case 'Development':
+      return Cpu;
+    case 'Utilities':
+      return Calculator;
+    default:
+      return Wrench;
+  }
+};
 
-const categories = [
-  'All',
-  'Data Collection',
-  'Database',
-  'AI/ML',
-  'Utilities',
-  'Communication',
-];
-const types = ['All', 'API', 'Python', 'JavaScript', 'SQL'];
+const getToolColor = (category) => {
+  switch (category) {
+    case 'Data Collection':
+      return 'text-blue-600';
+    case 'Database':
+      return 'text-green-600';
+    case 'AI/ML':
+      return 'text-purple-600';
+    case 'Information':
+      return 'text-orange-600';
+    case 'Development':
+      return 'text-indigo-600';
+    case 'Utilities':
+      return 'text-yellow-600';
+    default:
+      return 'text-gray-600';
+  }
+};
 
-export const Tools = ({ onCreateTool, onEditTool }) => {
+export const Tools = ({ onCreateTool, onEditTool, onDeleteTool }) => {
   const { settings } = useApp();
   const darkMode = settings?.preferences?.theme === 'dark' || false;
 
-  // Stati per la gestione della pagina
-  const [tools, setTools] = useState(mockTools);
+  // Stati per la gestione della pagina - AGGIORNATI PER TOOLSERVICE
+  const [tools, setTools] = useState([]);
   const [selectedTool, setSelectedTool] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -164,15 +82,64 @@ export const Tools = ({ onCreateTool, onEditTool }) => {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Funzione per filtrare i tool
+  // NUOVO: Carica i tool dal ToolService
+  useEffect(() => {
+    loadTools();
+
+    // Ascolta gli aggiornamenti dei tool
+    const handleToolsUpdate = (event) => {
+      setTools(event.detail.tools);
+    };
+
+    window.addEventListener('toolsUpdated', handleToolsUpdate);
+
+    return () => {
+      window.removeEventListener('toolsUpdated', handleToolsUpdate);
+    };
+  }, []);
+
+  // NUOVO: Funzione per caricare i tool
+  const loadTools = () => {
+    try {
+      setLoading(true);
+      const allTools = ToolService.getToolsForDashboard();
+
+      // Aggiungi icon e color ai tool basati sulla categoria
+      const toolsWithDisplay = allTools.map((tool) => ({
+        ...tool,
+        icon: getToolIcon(tool.category),
+        color: getToolColor(tool.category),
+      }));
+
+      setTools(toolsWithDisplay);
+    } catch (error) {
+      console.error('Error loading tools:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ottieni categorie e tipi dinamicamente
+  const getCategories = () => {
+    const categories = [...new Set(tools.map((tool) => tool.category))];
+    return ['All', ...categories.sort()];
+  };
+
+  const getTypes = () => {
+    const types = [...new Set(tools.map((tool) => tool.type))];
+    return ['All', ...types.sort()];
+  };
+
+  // Funzione per filtrare i tool - AGGIORNATA
   const getFilteredTools = () => {
     return tools
       .filter((tool) => {
         const matchesSearch =
           tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          tool.tags.some((tag) =>
+          tool.tags?.some((tag) =>
             tag.toLowerCase().includes(searchQuery.toLowerCase())
           );
 
@@ -208,44 +175,56 @@ export const Tools = ({ onCreateTool, onEditTool }) => {
       });
   };
 
-  // Tool operations
+  // Tool operations - AGGIORNATE PER TOOLSERVICE
   const toggleFavorite = (toolId) => {
-    setTools(
-      tools.map((tool) =>
-        tool.id === toolId ? { ...tool, isFavorite: !tool.isFavorite } : tool
-      )
-    );
-  };
-
-  const toggleActive = (toolId) => {
-    setTools(
-      tools.map((tool) =>
-        tool.id === toolId ? { ...tool, isActive: !tool.isActive } : tool
-      )
-    );
-  };
-
-  const deleteTool = (toolId) => {
-    if (window.confirm('Are you sure you want to delete this tool?')) {
-      setTools(tools.filter((tool) => tool.id !== toolId));
-      if (selectedTool && selectedTool.id === toolId) {
-        setSelectedTool(null);
+    const tool = tools.find((t) => t.id === toolId);
+    if (tool) {
+      const updated = ToolService.updateTool(toolId, {
+        isFavorite: !tool.isFavorite,
+      });
+      if (updated) {
+        // L'aggiornamento sarà gestito dall'event listener
       }
     }
   };
 
-  const duplicateTool = (toolId) => {
+  const toggleActive = (toolId) => {
+    ToolService.toggleToolActive(toolId);
+    // L'aggiornamento sarà gestito dall'event listener
+  };
+
+  const handleDeleteTool = (toolId) => {
+    if (window.confirm('Are you sure you want to delete this tool?')) {
+      const success = ToolService.deleteTool(toolId);
+
+      if (success) {
+        // L'aggiornamento sarà gestito dall'event listener
+        if (selectedTool && selectedTool.id === toolId) {
+          setSelectedTool(null);
+        }
+
+        // Chiama la funzione parent se fornita
+        if (onDeleteTool) {
+          onDeleteTool(toolId);
+        }
+      }
+    }
+  };
+
+  const handleDuplicateTool = (toolId) => {
     const tool = tools.find((t) => t.id === toolId);
     if (tool) {
-      const newTool = {
+      const duplicatedTool = {
         ...tool,
-        id: `tool-${Date.now()}`,
         name: `${tool.name} (Copy)`,
-        created: new Date().toISOString().split('T')[0],
-        lastModified: new Date().toISOString().split('T')[0],
+        id: undefined, // Sarà generato automaticamente
+        created: undefined, // Sarà generato automaticamente
         usageCount: 0,
+        isFavorite: false,
       };
-      setTools([...tools, newTool]);
+
+      ToolService.createTool(duplicatedTool);
+      // L'aggiornamento sarà gestito dall'event listener
     }
   };
 
@@ -261,142 +240,165 @@ export const Tools = ({ onCreateTool, onEditTool }) => {
     }
   };
 
-  // Components
-  const StatusBadge = ({ isActive }) => (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        isActive
-          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      }`}
-    >
-      {isActive ? 'Active' : 'Inactive'}
-    </span>
-  );
-
+  // Component per visualizzare un singolo tool
   const ToolCard = ({ tool }) => {
-    const IconComponent = tool.icon;
+    const IconComponent = tool.icon || Wrench;
 
     return (
-      <div className='bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200 group'>
-        <div className='p-6'>
-          {/* Header */}
-          <div className='flex items-start justify-between mb-3'>
-            <div className='flex items-center space-x-3'>
+      <div
+        className={`bg-white dark:bg-gray-800 rounded-lg border ${
+          selectedTool?.id === tool.id
+            ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
+            : 'border-gray-200 dark:border-gray-700'
+        } hover:shadow-md transition-all duration-200 cursor-pointer`}
+        onClick={() => setSelectedTool(tool)}
+      >
+        {/* Header del tool */}
+        <div className='p-4 border-b border-gray-100 dark:border-gray-700'>
+          <div className='flex items-start justify-between'>
+            <div className='flex items-start space-x-3'>
               <div
-                className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-700 ${tool.color}`}
+                className={`p-2 rounded-lg bg-gray-50 dark:bg-gray-700 ${tool.color}`}
               >
                 <IconComponent className='w-5 h-5' />
               </div>
-              <div className='min-w-0 flex-1'>
-                <h3 className='text-lg font-medium text-gray-900 dark:text-white truncate'>
+              <div className='flex-1 min-w-0'>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-white truncate'>
                   {tool.name}
                 </h3>
-                <p className='text-xs text-gray-500 dark:text-gray-400'>
+                <p className='text-sm text-gray-500 dark:text-gray-400 mb-2'>
                   v{tool.version} • {tool.type}
+                </p>
+                <p className='text-sm text-gray-600 dark:text-gray-300 line-clamp-2'>
+                  {tool.description}
                 </p>
               </div>
             </div>
 
-            <div className='flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+            {/* Menu azioni */}
+            <div className='flex items-center space-x-2'>
               <button
-                onClick={() => toggleFavorite(tool.id)}
-                className={`p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                  tool.isFavorite ? 'text-yellow-500' : 'text-gray-400'
-                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(tool.id);
+                }}
+                className='p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'
                 title={
                   tool.isFavorite ? 'Remove from favorites' : 'Add to favorites'
                 }
               >
                 {tool.isFavorite ? (
-                  <Star className='w-4 h-4 fill-current' />
+                  <Star className='w-4 h-4 text-yellow-400 fill-current' />
                 ) : (
-                  <StarOff className='w-4 h-4' />
+                  <StarOff className='w-4 h-4 text-gray-400' />
                 )}
               </button>
 
-              <div className='relative'>
-                <button className='p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors'>
-                  <MoreVertical className='w-4 h-4' />
+              <div className='relative group'>
+                <button className='p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'>
+                  <MoreVertical className='w-4 h-4 text-gray-500' />
                 </button>
+
+                {/* Dropdown menu */}
+                <div className='absolute right-0 top-6 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10'>
+                  <div className='py-1'>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditTool(tool);
+                      }}
+                      className='flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    >
+                      <Edit className='w-4 h-4 mr-2' />
+                      Edit
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicateTool(tool.id);
+                      }}
+                      className='flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    >
+                      <Copy className='w-4 h-4 mr-2' />
+                      Duplicate
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleActive(tool.id);
+                      }}
+                      className='flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    >
+                      <Play className='w-4 h-4 mr-2' />
+                      {tool.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <div className='border-t border-gray-100 dark:border-gray-700 my-1'></div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTool(tool.id);
+                      }}
+                      className='flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
+                    >
+                      <Trash2 className='w-4 h-4 mr-2' />
+                      Delete
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Description */}
-          <p className='text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2 min-h-[2.5rem]'>
-            {tool.description || 'No description provided'}
-          </p>
-
-          {/* Tags */}
-          <div className='flex flex-wrap gap-1 mb-4 min-h-[1.5rem]'>
-            {tool.tags?.slice(0, 3).map((tag) => (
+        {/* Corpo del tool */}
+        <div className='p-4'>
+          <div className='flex items-center justify-between mb-3'>
+            <div className='flex items-center space-x-2'>
               <span
-                key={tag}
-                className='inline-flex items-center px-2 py-1 rounded-md text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  tool.isActive
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                }`}
               >
-                {tag}
+                {tool.isActive ? 'Active' : 'Inactive'}
               </span>
-            ))}
-            {tool.tags?.length > 3 && (
-              <span className='text-xs text-gray-500 dark:text-gray-400 py-1'>
-                +{tool.tags.length - 3} more
+              <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'>
+                <Tag className='w-3 h-3 mr-1' />
+                {tool.category}
               </span>
-            )}
-          </div>
-
-          {/* Status and Usage */}
-          <div className='flex items-center justify-between mb-4'>
-            <StatusBadge isActive={tool.isActive} />
+            </div>
             <div className='text-xs text-gray-500 dark:text-gray-400'>
               Used {tool.usageCount || 0} times
             </div>
           </div>
 
-          {/* Category */}
-          <div className='text-xs text-gray-500 dark:text-gray-400 mb-4'>
-            <Tag className='w-3 h-3 inline mr-1' />
-            {tool.category}
-          </div>
-        </div>
+          {/* Tags */}
+          {tool.tags && tool.tags.length > 0 && (
+            <div className='flex flex-wrap gap-1 mb-3'>
+              {tool.tags.slice(0, 3).map((tag, index) => (
+                <span
+                  key={index}
+                  className='inline-block px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded'
+                >
+                  {tag}
+                </span>
+              ))}
+              {tool.tags.length > 3 && (
+                <span className='inline-block px-2 py-1 text-xs bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded'>
+                  +{tool.tags.length - 3} more
+                </span>
+              )}
+            </div>
+          )}
 
-        {/* Actions Footer */}
-        <div className='px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750'>
-          <div className='flex items-center justify-between'>
-            <div className='text-xs text-gray-500 dark:text-gray-400 flex items-center'>
+          {/* Footer */}
+          <div className='flex items-center justify-between text-xs text-gray-500 dark:text-gray-400'>
+            <div className='flex items-center'>
               <User className='w-3 h-3 mr-1' />
               {tool.author}
             </div>
-
-            <div className='flex items-center space-x-2'>
-              <button
-                onClick={() => handleEditTool(tool)}
-                className='text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm font-medium transition-colors'
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => duplicateTool(tool.id)}
-                className='p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors'
-                title='Duplicate tool'
-              >
-                <Copy className='w-4 h-4' />
-              </button>
-              <button
-                className='p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-green-500 hover:text-green-600 transition-colors'
-                title='Test tool'
-                disabled={!tool.isActive}
-              >
-                <Play className='w-4 h-4' />
-              </button>
-              <button
-                onClick={() => deleteTool(tool.id)}
-                className='p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-red-400 hover:text-red-600 transition-colors'
-                title='Delete tool'
-              >
-                <Trash2 className='w-4 h-4' />
-              </button>
-            </div>
+            <div>Updated {tool.lastModified}</div>
           </div>
         </div>
       </div>
@@ -404,6 +406,20 @@ export const Tools = ({ onCreateTool, onEditTool }) => {
   };
 
   const filteredTools = getFilteredTools();
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className='flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
+        <div className='flex flex-col items-center'>
+          <div className='w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+          <p className='mt-4 text-gray-600 dark:text-gray-300'>
+            Loading tools...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-screen'>
@@ -426,7 +442,7 @@ export const Tools = ({ onCreateTool, onEditTool }) => {
             </div>
             <button
               onClick={handleCreateTool}
-              className='flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
+              className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             >
               <Plus className='w-4 h-4 mr-2' />
               Create Tool
@@ -435,231 +451,106 @@ export const Tools = ({ onCreateTool, onEditTool }) => {
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className='border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4'>
-        <div className='flex items-center justify-between mb-4'>
+      {/* Filters and Search */}
+      <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4'>
+        <div className='flex flex-col sm:flex-row gap-4'>
           {/* Search */}
-          <div className='relative flex-1 max-w-md'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400' />
-            <input
-              type='text'
-              placeholder='Search tools...'
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className='w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
+          <div className='flex-1'>
+            <div className='relative'>
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
+              <input
+                type='text'
+                placeholder='Search tools...'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className='w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              />
+            </div>
           </div>
 
-          {/* View Controls */}
-          <div className='flex items-center space-x-3'>
+          {/* Filters */}
+          <div className='flex gap-3'>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            >
+              {getCategories().map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            >
+              {getTypes().map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                showFilters
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              onClick={() => setShowActiveOnly(!showActiveOnly)}
+              className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
+                showActiveOnly
+                  ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              <Filter className='w-4 h-4 mr-1' />
-              Filters
+              Active Only
             </button>
 
-            <div className='flex items-center border border-gray-300 dark:border-gray-600 rounded-md'>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-                title='Grid view'
-              >
-                <div className='w-4 h-4 grid grid-cols-2 gap-0.5'>
-                  <div className='bg-current rounded-sm'></div>
-                  <div className='bg-current rounded-sm'></div>
-                  <div className='bg-current rounded-sm'></div>
-                  <div className='bg-current rounded-sm'></div>
-                </div>
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-                title='List view'
-              >
-                <Menu className='w-4 h-4' />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced Filters */}
-        {showFilters && (
-          <div className='grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md'>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                Category
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm'
-              >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                Type
-              </label>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm'
-              >
-                {types.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                Sort by
-              </label>
-              <div className='flex space-x-2'>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm'
-                >
-                  <option value='name'>Name</option>
-                  <option value='created'>Created</option>
-                  <option value='lastModified'>Modified</option>
-                  <option value='usageCount'>Usage</option>
-                </select>
-                <button
-                  onClick={() =>
-                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-                  }
-                  className='px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors'
-                  title={`Sort ${
-                    sortOrder === 'asc' ? 'descending' : 'ascending'
-                  }`}
-                >
-                  <ArrowUpDown className='w-4 h-4' />
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                Status Filters
-              </label>
-              <div className='space-y-2'>
-                <label className='flex items-center'>
-                  <input
-                    type='checkbox'
-                    checked={showActiveOnly}
-                    onChange={(e) => setShowActiveOnly(e.target.checked)}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                  <span className='ml-2 text-sm text-gray-700 dark:text-gray-300'>
-                    Active only
-                  </span>
-                </label>
-                <label className='flex items-center'>
-                  <input
-                    type='checkbox'
-                    checked={showFavoritesOnly}
-                    onChange={(e) => setShowFavoritesOnly(e.target.checked)}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                  <span className='ml-2 text-sm text-gray-700 dark:text-gray-300'>
-                    Favorites only
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Stats Bar */}
-      <div className='px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'>
-        <div className='flex items-center justify-between text-sm text-gray-600 dark:text-gray-400'>
-          <div className='flex items-center space-x-6'>
-            <span>
-              <span className='font-medium text-gray-900 dark:text-white'>
-                {filteredTools.length}
-              </span>{' '}
-              of {tools.length} tools
-            </span>
-            <span>
-              <span className='font-medium text-green-600'>
-                {tools.filter((t) => t.isActive).length}
-              </span>{' '}
-              active
-            </span>
-            <span>
-              <span className='font-medium text-yellow-600'>
-                {tools.filter((t) => t.isFavorite).length}
-              </span>{' '}
-              favorites
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className='flex-1 overflow-auto'>
-        <div className='p-6'>
-          {filteredTools.length === 0 ? (
-            <div className='text-center py-12'>
-              <Wrench className='w-12 h-12 text-gray-400 mx-auto mb-4' />
-              <p className='text-gray-500 dark:text-gray-400 text-lg mb-2'>
-                {tools.length === 0
-                  ? 'No tools created yet'
-                  : 'No tools match your filters'}
-              </p>
-              <p className='text-gray-400 dark:text-gray-500 text-sm mb-4'>
-                {tools.length === 0
-                  ? 'Create your first tool to get started with cross-agent utilities'
-                  : 'Try adjusting your search or filter criteria'}
-              </p>
-              {tools.length === 0 && (
-                <button
-                  onClick={handleCreateTool}
-                  className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
-                >
-                  Create your first tool
-                </button>
-              )}
-            </div>
-          ) : (
-            <div
-              className={`${
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                  : 'space-y-4'
+            <button
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
+                showFavoritesOnly
+                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              {filteredTools.map((tool) => (
-                <ToolCard key={tool.id} tool={tool} />
-              ))}
-            </div>
-          )}
+              <Star className='w-4 h-4 mr-1' />
+              Favorites
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* Content */}
+      <div className='flex-1 p-6'>
+        {filteredTools.length === 0 ? (
+          <div className='text-center py-12'>
+            <Wrench className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+            <p className='text-gray-500 dark:text-gray-400 text-lg mb-2'>
+              {tools.length === 0
+                ? 'No tools created yet'
+                : 'No tools match your filters'}
+            </p>
+            <p className='text-gray-400 dark:text-gray-500 text-sm mb-4'>
+              {tools.length === 0
+                ? 'Create your first tool to get started with cross-agent utilities'
+                : 'Try adjusting your search or filter criteria'}
+            </p>
+            {tools.length === 0 && (
+              <button
+                onClick={handleCreateTool}
+                className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
+              >
+                Create your first tool
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+            {filteredTools.map((tool) => (
+              <ToolCard key={tool.id} tool={tool} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-// components/pages/Dashboard.jsx - Updated with Conversation Flow
+// components/pages/Dashboard.jsx - Integrato con Tools Management
 import React, { useState, useEffect } from 'react';
 import {
   Activity,
@@ -15,16 +15,20 @@ import {
   Edit,
   Eye,
   BrainCircuit,
+  Wrench, // Aggiunto per i tools
 } from 'lucide-react';
 import ConversationFlowVisualizer from '../visualization/ConversationFlowVisualizer';
+import DashboardToolsWidget from '../dashboard/DashboardToolsWidget'; // Import del widget tools
 
-// Dummy data for the dashboard
+// Dummy data for the dashboard (con aggiunta dei dati tools)
 const mockData = {
   overviewStats: {
     activeWorkflows: 7,
     totalAgents: 12,
     completedTasks: 124,
     failedTasks: 3,
+    totalTools: 15, // Aggiunto
+    activeTools: 12, // Aggiunto
   },
   systemMetrics: {
     cpuUsage: 42,
@@ -128,20 +132,27 @@ const mockData = {
     },
     {
       id: 'act-3',
+      action: 'Tool created', // Aggiunto activity per tools
+      target: 'Web Scraper Tool',
+      time: '3 hours ago',
+      user: 'John D.',
+    },
+    {
+      id: 'act-4',
       action: 'Workflow modified',
       target: 'Lead Qualification',
       time: '1 day ago',
       user: 'John D.',
     },
     {
-      id: 'act-4',
+      id: 'act-5',
       action: 'Agent created',
       target: 'Knowledge Base Assistant',
       time: '2 days ago',
       user: 'Sarah M.',
     },
     {
-      id: 'act-5',
+      id: 'act-6',
       action: 'Template imported',
       target: 'Customer Feedback Analysis',
       time: '3 days ago',
@@ -150,7 +161,7 @@ const mockData = {
   ],
 };
 
-// Helper components
+// Helper components (mantenuti uguali)
 const StatusBadge = ({ status }) => {
   const getStatusConfig = () => {
     switch (status.toLowerCase()) {
@@ -269,18 +280,8 @@ const StatCard = ({ title, value, icon, change, changeType }) => {
   );
 };
 
-const ChartCard = ({ title, children }) => {
-  return (
-    <div className='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700'>
-      <h3 className='text-lg font-medium text-gray-800 dark:text-white mb-4'>
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-};
-
-export const Dashboard = () => {
+// Componente principale Dashboard aggiornato
+export const Dashboard = ({ onNavigate, onCreateTool, onShowToolBuilder }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState(null);
   const [timeRange, setTimeRange] = useState('day');
@@ -313,6 +314,22 @@ export const Dashboard = () => {
   // Toggle conversation flow visualizer
   const toggleConversationFlow = () => {
     setShowConversationFlow(!showConversationFlow);
+  };
+
+  // Handler per navigare alla pagina Tools
+  const handleNavigateToTools = () => {
+    if (onNavigate) {
+      onNavigate('tools');
+    }
+  };
+
+  // Handler per creare un nuovo tool
+  const handleCreateNewTool = () => {
+    if (onCreateTool) {
+      onCreateTool();
+    } else if (onShowToolBuilder) {
+      onShowToolBuilder();
+    }
   };
 
   if (isLoading || !data) {
@@ -405,8 +422,8 @@ export const Dashboard = () => {
 
       {/* Dashboard Content */}
       <div className='p-6'>
-        {/* Overview Stats */}
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6'>
+        {/* Overview Stats - Aggiunta card per i Tools */}
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 mb-6'>
           <StatCard
             title='Active Workflows'
             value={data.overviewStats.activeWorkflows}
@@ -419,6 +436,13 @@ export const Dashboard = () => {
             value={data.overviewStats.totalAgents}
             icon={<Users className='w-5 h-5' />}
             change='3'
+            changeType='increase'
+          />
+          <StatCard
+            title='Active Tools'
+            value={data.overviewStats.activeTools}
+            icon={<Wrench className='w-5 h-5' />}
+            change='2'
             changeType='increase'
           />
           <StatCard
@@ -435,94 +459,112 @@ export const Dashboard = () => {
             change='2'
             changeType='decrease'
           />
+          <StatCard
+            title='Total Tools'
+            value={data.overviewStats.totalTools}
+            icon={<Wrench className='w-5 h-5' />}
+            change='1'
+            changeType='increase'
+          />
         </div>
 
-        {/* New Conversation Flow Card */}
-        <div className='mb-8'>
-          <div className='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700'>
-            <div className='flex items-center justify-between mb-4'>
-              <h3 className='text-lg font-medium text-gray-800 dark:text-white'>
-                Conversation Flow Analysis
-              </h3>
-              <button
-                onClick={toggleConversationFlow}
-                className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
-              >
-                <BrainCircuit className='w-4 h-4 mr-2 inline' />
-                Open Visualizer
-              </button>
-            </div>
+        {/* Main Content Grid - Aggiunto Tools Widget */}
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8'>
+          {/* Tools Widget - NUOVA SEZIONE */}
+          <div className='lg:col-span-1'>
+            <DashboardToolsWidget
+              onNavigateToTools={handleNavigateToTools}
+              onCreateTool={handleCreateNewTool}
+            />
+          </div>
 
-            <div className='flex flex-col md:flex-row'>
-              <div className='md:w-1/2 mb-4 md:mb-0 md:pr-4'>
-                <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                  Most Common Conversation Paths
-                </h4>
-                <div className='bg-gray-50 dark:bg-gray-900 rounded-lg p-3'>
-                  <div className='space-y-3'>
-                    <div className='flex items-center justify-between'>
-                      <div className='text-sm text-gray-600 dark:text-gray-400'>
-                        Triage → Technical Support → Resolution
+          {/* Conversation Flow Analysis - spostato nella griglia */}
+          <div className='lg:col-span-2'>
+            <div className='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700'>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-lg font-medium text-gray-800 dark:text-white'>
+                  Conversation Flow Analysis
+                </h3>
+                <button
+                  onClick={toggleConversationFlow}
+                  className='px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700'
+                >
+                  <BrainCircuit className='w-4 h-4 mr-2 inline' />
+                  Open Visualizer
+                </button>
+              </div>
+
+              <div className='flex flex-col md:flex-row'>
+                <div className='md:w-1/2 mb-4 md:mb-0 md:pr-4'>
+                  <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                    Most Common Conversation Paths
+                  </h4>
+                  <div className='bg-gray-50 dark:bg-gray-900 rounded-lg p-3'>
+                    <div className='space-y-3'>
+                      <div className='flex items-center justify-between'>
+                        <div className='text-sm text-gray-600 dark:text-gray-400'>
+                          Triage → Technical Support → Resolution
+                        </div>
+                        <div className='text-sm font-medium text-gray-800 dark:text-white'>
+                          245
+                        </div>
                       </div>
-                      <div className='text-sm font-medium text-gray-800 dark:text-white'>
-                        245
+                      <div className='flex items-center justify-between'>
+                        <div className='text-sm text-gray-600 dark:text-gray-400'>
+                          Triage → Billing Support → Resolution
+                        </div>
+                        <div className='text-sm font-medium text-gray-800 dark:text-white'>
+                          178
+                        </div>
                       </div>
-                    </div>
-                    <div className='flex items-center justify-between'>
-                      <div className='text-sm text-gray-600 dark:text-gray-400'>
-                        Triage → Billing Support → Resolution
-                      </div>
-                      <div className='text-sm font-medium text-gray-800 dark:text-white'>
-                        178
-                      </div>
-                    </div>
-                    <div className='flex items-center justify-between'>
-                      <div className='text-sm text-gray-600 dark:text-gray-400'>
-                        Triage → Billing → Escalation → Human
-                      </div>
-                      <div className='text-sm font-medium text-gray-800 dark:text-white'>
-                        52
+                      <div className='flex items-center justify-between'>
+                        <div className='text-sm text-gray-600 dark:text-gray-400'>
+                          Triage → Billing → Escalation → Human
+                        </div>
+                        <div className='text-sm font-medium text-gray-800 dark:text-white'>
+                          52
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className='md:w-1/2 md:pl-4'>
-                <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                  Flow Bottlenecks
-                </h4>
-                <div className='bg-gray-50 dark:bg-gray-900 rounded-lg p-3'>
-                  <div className='space-y-3'>
-                    <div className='flex items-start'>
-                      <div className='w-2 h-2 mt-1.5 rounded-full bg-red-500 mr-2'></div>
-                      <div className='flex-1'>
-                        <div className='flex justify-between'>
-                          <div className='text-sm font-medium text-gray-800 dark:text-white'>
-                            Account Lookup Action
+                <div className='md:w-1/2 md:pl-4'>
+                  <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                    Flow Bottlenecks
+                  </h4>
+                  <div className='bg-gray-50 dark:bg-gray-900 rounded-lg p-3'>
+                    <div className='space-y-3'>
+                      <div className='flex items-start'>
+                        <div className='w-2 h-2 mt-1.5 rounded-full bg-red-500 mr-2'></div>
+                        <div className='flex-1'>
+                          <div className='flex justify-between'>
+                            <div className='text-sm font-medium text-gray-800 dark:text-white'>
+                              Account Lookup Action
+                            </div>
+                            <div className='text-sm text-red-600 dark:text-red-400'>
+                              45s avg wait
+                            </div>
                           </div>
-                          <div className='text-sm text-red-600 dark:text-red-400'>
-                            45s avg wait
+                          <div className='text-xs text-gray-500 dark:text-gray-400'>
+                            High impact on conversation flow
                           </div>
-                        </div>
-                        <div className='text-xs text-gray-500 dark:text-gray-400'>
-                          High impact on conversation flow
                         </div>
                       </div>
-                    </div>
-                    <div className='flex items-start'>
-                      <div className='w-2 h-2 mt-1.5 rounded-full bg-yellow-500 mr-2'></div>
-                      <div className='flex-1'>
-                        <div className='flex justify-between'>
-                          <div className='text-sm font-medium text-gray-800 dark:text-white'>
-                            Human Agent Handoff
+                      <div className='flex items-start'>
+                        <div className='w-2 h-2 mt-1.5 rounded-full bg-yellow-500 mr-2'></div>
+                        <div className='flex-1'>
+                          <div className='flex justify-between'>
+                            <div className='text-sm font-medium text-gray-800 dark:text-white'>
+                              Human Agent Handoff
+                            </div>
+                            <div className='text-sm text-yellow-600 dark:text-yellow-400'>
+                              78s avg wait
+                            </div>
                           </div>
-                          <div className='text-sm text-yellow-600 dark:text-yellow-400'>
-                            78s avg wait
+                          <div className='text-xs text-gray-500 dark:text-gray-400'>
+                            Medium impact on conversation flow
                           </div>
-                        </div>
-                        <div className='text-xs text-gray-500 dark:text-gray-400'>
-                          Medium impact on conversation flow
                         </div>
                       </div>
                     </div>
@@ -610,7 +652,7 @@ export const Dashboard = () => {
 
         {/* Recent Workflows & Agent Performance */}
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8'>
-          {/* Recent Workflows */}
+          {/* Recent Workflows - mantenuto uguale */}
           <div className='bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden'>
             <div className='flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700'>
               <h2 className='text-lg font-medium text-gray-800 dark:text-white'>
@@ -631,9 +673,6 @@ export const Dashboard = () => {
                       Status
                     </th>
                     <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                      Last Run
-                    </th>
-                    <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                       Success Rate
                     </th>
                     <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
@@ -650,23 +689,8 @@ export const Dashboard = () => {
                       <td className='px-5 py-4 whitespace-nowrap text-sm'>
                         <StatusBadge status={workflow.status} />
                       </td>
-                      <td className='px-5 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400'>
-                        {workflow.lastRun}
-                      </td>
                       <td className='px-5 py-4 whitespace-nowrap text-sm'>
                         <div className='flex items-center'>
-                          <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2'>
-                            <div
-                              className={`h-2 rounded-full ${
-                                workflow.successRate >= 95
-                                  ? 'bg-green-500'
-                                  : workflow.successRate >= 90
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
-                              }`}
-                              style={{ width: `${workflow.successRate}%` }}
-                            ></div>
-                          </div>
                           <span
                             className={`text-xs font-medium ${
                               workflow.successRate >= 95
@@ -694,21 +718,6 @@ export const Dashboard = () => {
                           >
                             <Edit className='w-4 h-4' />
                           </button>
-                          {workflow.status === 'active' ? (
-                            <button
-                              className='text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300'
-                              title='Pause'
-                            >
-                              <Pause className='w-4 h-4' />
-                            </button>
-                          ) : (
-                            <button
-                              className='text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300'
-                              title='Run'
-                            >
-                              <Play className='w-4 h-4' />
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -718,7 +727,7 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Agent Performance */}
+          {/* Agent Performance - mantenuto uguale ma compatto */}
           <div className='bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden'>
             <div className='flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700'>
               <h2 className='text-lg font-medium text-gray-800 dark:text-white'>
@@ -742,9 +751,6 @@ export const Dashboard = () => {
                       Load
                     </th>
                     <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                      Response Time
-                    </th>
-                    <th className='px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                       Error Rate
                     </th>
                   </tr>
@@ -759,12 +765,9 @@ export const Dashboard = () => {
                         <StatusBadge status={agent.status} />
                       </td>
                       <td className='px-5 py-4 whitespace-nowrap text-sm'>
-                        <div className='w-32'>
+                        <div className='w-20'>
                           <LoadIndicator load={agent.load} />
                         </div>
-                      </td>
-                      <td className='px-5 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400'>
-                        {agent.responseTime}
                       </td>
                       <td className='px-5 py-4 whitespace-nowrap text-sm'>
                         {agent.errorRate === 'n/a' ? (

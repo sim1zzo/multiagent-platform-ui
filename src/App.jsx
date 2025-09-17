@@ -1,4 +1,4 @@
-// App.jsx - Integrated with Memory Analytics
+// App.jsx - Integrated with Memory Analytics and Tool Management
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { WorkspaceManager } from './components/WorkspaceManager';
@@ -16,11 +16,14 @@ import { AgentMemoryVisualization } from './components/visualization/AgentMemory
 import { useWorkflowMarketplace } from './hooks/useWorkflowMarketplace';
 import { Dashboard } from './components/pages/Dashboard';
 import { Analytics } from './components/pages/Analytics';
-import { MemoryAnalytics } from './components/pages/MemoryAnalytics'; // NEW IMPORT
+import { MemoryAnalytics } from './components/pages/MemoryAnalytics';
 import { Tools } from './components/pages/Tools';
-import { ToolBuilder } from './components/tools/ToolBuilder';
+// import { ToolBuilder } from './components/tools/ToolBuilder';
+import ToolBuilder from './components/tools/ToolBuilder';
 import { Simulations } from './components/pages/Simulations';
 import ConversationFlowVisualizer from './components/visualization/ConversationFlowVisualizer';
+// NUOVI IMPORT PER IL SISTEMA TOOL
+import ToolService from './services/ToolService';
 
 const MainApp = () => {
   // Get app context
@@ -73,7 +76,7 @@ const MainApp = () => {
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
 
-  // Tools management state
+  // Tools management state - AGGIORNATO PER INTEGRAZIONE
   const [showToolBuilder, setShowToolBuilder] = useState(false);
   const [editingTool, setEditingTool] = useState(null);
   const [toolBuilderMode, setToolBuilderMode] = useState('create');
@@ -82,7 +85,7 @@ const MainApp = () => {
   const [memoryVisualizationOpen, setMemoryVisualizationOpen] = useState(false);
   const [selectedAgentForMemory, setSelectedAgentForMemory] = useState(null);
 
-  // Memory Analytics state - NEW STATE MANAGEMENT
+  // Memory Analytics state
   const [memoryAnalyticsOpen, setMemoryAnalyticsOpen] = useState(false);
 
   // UI state
@@ -149,8 +152,17 @@ const MainApp = () => {
     });
   };
 
-  // Helper function to get tool name from ID
+  // Helper function to get tool name from ID - AGGIORNATO PER INTEGRAZIONE
   const getToolName = (toolId) => {
+    // Prima prova a ottenere il nome dal ToolService
+    const allTools = ToolService.getAllTools();
+    const tool = allTools.find((t) => t.id === toolId);
+
+    if (tool) {
+      return tool.name;
+    }
+
+    // Fallback ai nomi statici se non trovato nel ToolService
     const toolNames = {
       rag: 'Retrieval Augmented Generation',
       'web-search': 'Web Search',
@@ -165,7 +177,7 @@ const MainApp = () => {
     return toolNames[toolId] || `${toolId} Tool`;
   };
 
-  // Create node after modal confirmation
+  // Create node after modal confirmation - AGGIORNATO PER INTEGRAZIONE
   const handleNodeCreate = (nodeData) => {
     const newNode = {
       id: `${nodeData.nodeType || nodeCreationModal.nodeType}-${Date.now()}`,
@@ -233,15 +245,31 @@ const MainApp = () => {
       newEdges.push(modelEdge);
       newEdges.push(memoryEdge);
 
-      // Use default tools from settings if none are provided
-      const toolsToAdd =
-        newNode.tools && newNode.tools.length > 0
-          ? newNode.tools
-          : settings.ai?.defaultTools || [
-              'web-search',
-              'code-interpreter',
-              'mongodb',
-            ];
+      // AGGIORNATO: Gestione tool integrata con ToolService
+      let toolsToAdd = [];
+
+      // Se ci sono tool selezionati nel nodeData, usali
+      if (newNode.tools && newNode.tools.length > 0) {
+        toolsToAdd = newNode.tools;
+      } else {
+        // Altrimenti usa i tool di default dalle impostazioni
+        const defaultToolIds = settings.ai?.defaultTools || [
+          'web-search',
+          'code-interpreter',
+          'mongodb',
+        ];
+
+        // Prova a mappare gli ID ai tool disponibili nel ToolService
+        const availableTools = ToolService.getAvailableToolsForAgents();
+        toolsToAdd = defaultToolIds.map((toolId) => {
+          const tool = availableTools.find(
+            (t) =>
+              t.id === toolId ||
+              t.name.toLowerCase().includes(toolId.toLowerCase())
+          );
+          return tool ? tool.id : toolId;
+        });
+      }
 
       // Create tool nodes if any tools are selected
       if (toolsToAdd.length > 0) {
@@ -278,6 +306,9 @@ const MainApp = () => {
 
           newNodes.push(toolNode);
           newEdges.push(toolEdge);
+
+          // NUOVO: Incrementa il contatore di utilizzo del tool
+          ToolService.incrementUsage(toolId);
         });
       }
 
@@ -438,7 +469,7 @@ const MainApp = () => {
     });
   };
 
-  // Tool management functions
+  // Tool management functions - AGGIORNATO PER INTEGRAZIONE
   const handleCreateTool = () => {
     setEditingTool(null);
     setToolBuilderMode('create');
@@ -452,16 +483,40 @@ const MainApp = () => {
   };
 
   const handleSaveTool = (toolData) => {
-    setNotificationModal({
-      isOpen: true,
-      message: `Tool ${
-        toolBuilderMode === 'create' ? 'created' : 'updated'
-      } successfully!`,
-      type: 'success',
-    });
+    try {
+      let savedTool;
 
-    setShowToolBuilder(false);
-    setEditingTool(null);
+      if (toolBuilderMode === 'edit' && editingTool) {
+        // Update existing tool
+        savedTool = ToolService.updateTool(editingTool.id, toolData);
+      } else {
+        // Create new tool
+        savedTool = ToolService.createTool(toolData);
+      }
+
+      if (savedTool) {
+        setNotificationModal({
+          isOpen: true,
+          message: `Tool "${savedTool.name}" ${
+            toolBuilderMode === 'create' ? 'created' : 'updated'
+          } successfully!`,
+          type: 'success',
+        });
+
+        setShowToolBuilder(false);
+        setEditingTool(null);
+      } else {
+        throw new Error('Failed to save tool');
+      }
+    } catch (error) {
+      console.error('Error saving tool:', error);
+      setErrorModal({
+        isOpen: true,
+        message: `Error ${
+          toolBuilderMode === 'create' ? 'creating' : 'updating'
+        } tool: ${error.message}`,
+      });
+    }
   };
 
   const handleCancelToolBuilder = () => {
@@ -469,7 +524,30 @@ const MainApp = () => {
     setEditingTool(null);
   };
 
-  // Memory Analytics handlers - NEW FUNCTIONS
+  // NUOVA FUNZIONE: Delete tool
+  const handleDeleteTool = (toolId) => {
+    try {
+      const success = ToolService.deleteTool(toolId);
+
+      if (success) {
+        setNotificationModal({
+          isOpen: true,
+          message: 'Tool deleted successfully!',
+          type: 'success',
+        });
+      } else {
+        throw new Error('Failed to delete tool');
+      }
+    } catch (error) {
+      console.error('Error deleting tool:', error);
+      setErrorModal({
+        isOpen: true,
+        message: `Error deleting tool: ${error.message}`,
+      });
+    }
+  };
+
+  // Memory Analytics handlers
   const handleOpenMemoryAnalytics = () => {
     setMemoryAnalyticsOpen(true);
   };
@@ -641,11 +719,17 @@ const MainApp = () => {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  // Render the appropriate page based on activePage state
+  // Render the appropriate page based on activePage state - AGGIORNATO
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard />;
+        return (
+          <Dashboard
+            onNavigate={navigateTo}
+            onCreateTool={handleCreateTool}
+            onShowToolBuilder={() => setShowToolBuilder(true)}
+          />
+        );
       case 'analytics':
         return <Analytics />;
       case 'simulations':
@@ -654,7 +738,11 @@ const MainApp = () => {
         return <Settings />;
       case 'tools':
         return (
-          <Tools onCreateTool={handleCreateTool} onEditTool={handleEditTool} />
+          <Tools
+            onCreateTool={handleCreateTool}
+            onEditTool={handleEditTool}
+            onDeleteTool={handleDeleteTool}
+          />
         );
       case 'profile':
         return <Profile />;
@@ -665,7 +753,7 @@ const MainApp = () => {
             <Toolbar
               onNodeCreate={handleInitNodeCreate}
               onOpenMarketplace={openMarketplace}
-              onOpenMemoryAnalytics={handleOpenMemoryAnalytics} // NEW PROP
+              onOpenMemoryAnalytics={handleOpenMemoryAnalytics}
             />
 
             <WorkspaceManager
@@ -687,6 +775,7 @@ const MainApp = () => {
                 node={nodes.find((n) => n.id === selectedNode)}
                 onUpdate={(updates) => handleNodeUpdate(selectedNode, updates)}
                 onClose={() => setSelectedNode(null)}
+                onCreateNewTool={handleCreateTool}
               />
             )}
           </div>
@@ -759,7 +848,7 @@ const MainApp = () => {
         />
       )}
 
-      {/* Memory Analytics Modal - NEW MODAL */}
+      {/* Memory Analytics Modal */}
       {memoryAnalyticsOpen && (
         <div className='fixed inset-0 z-50 overflow-auto'>
           <div className='min-h-screen'>
