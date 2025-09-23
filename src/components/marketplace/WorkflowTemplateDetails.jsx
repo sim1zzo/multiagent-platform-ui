@@ -178,7 +178,7 @@ export const WorkflowTemplateDetails = ({ template, onBack, onImport }) => {
           <div className='flex space-x-2'>
             {template.premium && (
               <span className='bg-purple-600 text-white text-xs font-medium px-2.5 py-0.5 rounded-full'>
-                Premium
+                
               </span>
             )}
             {template.featured && (

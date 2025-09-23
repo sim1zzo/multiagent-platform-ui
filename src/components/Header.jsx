@@ -252,7 +252,7 @@ export const Header = ({
             Simulations
           </button>
 
-          <button
+          {/* <button
             className={`${
               activePage === 'analytics'
                 ? `${
@@ -269,7 +269,7 @@ export const Header = ({
             onClick={() => handleNavigate('analytics')}
           >
             Analytics
-          </button>
+          </button> */}
 
           {/* Marketplace button in navigation */}
           <button

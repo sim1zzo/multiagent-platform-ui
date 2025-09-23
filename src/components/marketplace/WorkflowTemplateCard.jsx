@@ -109,7 +109,7 @@ export const WorkflowTemplateCard = ({ template, onClick }) => {
         {/* Premium badge */}
         {template.premium && (
           <div className='absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-md'>
-            Premium
+            
           </div>
         )}
       </div>
